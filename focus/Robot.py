@@ -1,7 +1,7 @@
 import os
 import json
-import utils
 from time import sleep
+import focus.utils as utils
 
 class Robot(object):
 

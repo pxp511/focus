@@ -1,20 +1,25 @@
-import argparse
-from Robot import Robot
-import ui
 import os
-from multiprocessing import Process
+import argparse
+import focus.ui as ui
 from time import sleep
+from focus.Robot import Robot
+from multiprocessing import Process
+
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        '-r',
         '--repository',
         type=str,
         required=True,
         help=f'repository path',
     )
     args = parser.parse_args()
-    repository = args.repository
+    repository = os.path.abspath(args.repository)
+    if not os.path.isdir(os.path.join(repository, '.git')):
+        print(f"ERROE: is not a git repository")
+        exit()
     focus = f"{repository}/.git/.focus"
     focus_path = f"{focus}/focus.json"
     history_path = f"{focus}/history.json"
@@ -24,6 +29,7 @@ def main():
     if os.path.isdir(focus):
         os.system(f"rm -r {focus}")
     os.mkdir(focus)
+    os.system(f'cd {repository}')
     os.system(f"git rev-parse HEAD > {hash_path}")
     with open(hash_path, 'r') as f:
         hashnumber = f.readline()[:-1]

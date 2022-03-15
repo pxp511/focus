@@ -1,6 +1,6 @@
 import os
-from Robot import Robot
 import json
+from focus.Robot import Robot
 
 def add_focus(
     file_name: str,

@@ -1,12 +1,9 @@
-from ast import Return
-from email import message
-from tkinter import messagebox
-import cmd_manager
-from tkinter import *
-import json
-import utils
-from Robot import Robot
 import os
+import json
+from tkinter import *
+import focus.utils as utils
+from focus.Robot import Robot
+import focus.cmd_manager as cmd_manager
     
 
 def main(robot: Robot):
