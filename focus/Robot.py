@@ -23,29 +23,45 @@ class Robot(object):
         self._history_file = history_file
         self._focus_history_file = focus_history_file
         self._diff_file = diff_file
-        self._hashnumber = hashnumber
+        self._hashnumber = hashnumber   # hashnumber of last time
         self._hash_path = hash_path
         self._is_changed = is_changed
-    
-    def store_change_to_diff_file(self):
-        # if change happened, get the change from the remote repository and store to diff file, by command: git diff
+
+
+    def get_remote_head_hashnumber(self) -> str:
+        hashnumber = os.popen(f"git rev-parse HEAD").read()[:-1]
+        return hashnumber
+
+
+    def get_local_head_hashnumber(self) -> str:
+        with open(self._hash_path, 'r') as f:
+            hashnumber = f.readline()
+        return hashnumber
+
+
+    def renew_hashnumber(self):
         hash_path = self._hash_path
+        hashnumber_current = self.get_remote_head_hashnumber()
+        self._hashnumber = hashnumber_current
+        with open(f'{hash_path}', 'w') as f:
+            f.write(hashnumber_current)
+
+
+    def is_change_happend(self):
+        hashnumber = self.get_remote_head_hashnumber()
+        return hashnumber != self._hashnumber
+
+
+    def change2diff(self):
+        hashnumber_last = self._hashnumber
+        hashnumber_current = self.get_remote_head_hashnumber()
         diff_path = self._diff_file
-        os.system(f"rm {hash_path}")
-        os.system(f"git rev-parse HEAD > {hash_path}")
-        with open(hash_path, 'r') as f:
-            hashnumber = f.readline()[:-1]
-        hash_equal = True
-        if hashnumber != self._hashnumber:
-            hash_equal = False
-            if os.path.isfile(diff_path):
-                os.system(f"rm {diff_path}")
-            os.system(f"git diff HEAD HEAD~ > {self._diff_file}")
-            self._hashnumber = hashnumber
-        return hash_equal
+        change = os.popen(f"git diff {hashnumber_last} {hashnumber_current}").read()
+        with open(f'{diff_path}', 'w') as f:
+            f.write(change)
 
 
-    def repository_query(self):
+    def diff2history(self):
         # get the change from the remote repository and add to history file
         diff_path = self._diff_file
         history_file = self._history_file
@@ -62,8 +78,9 @@ class Robot(object):
         
         with open(history_file, 'w') as f:
             json.dump(history, f, indent=4) 
-    
-    def change_focus_history(self):
+
+
+    def history2focus_history(self):
         # cross-compare history.json and focus.json, then add the changes which user concerns to focus_history.json
         ##空文件还没有处理
         focus_json = {}
@@ -134,9 +151,11 @@ class Robot(object):
     def run(self):
         while True:
             sleep(self.query_interval)
-            if self.store_change_to_diff_file() == True:
-                continue
-            self.repository_query()
-            self.change_focus_history()
+            if not self.is_change_happend():
+                continue            
+            self.change2diff()
+            self.diff2history()
+            self.history2focus_history()
+            self.renew_hashnumber()
         # check if the remote repository has changed by query_interval
     

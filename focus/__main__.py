@@ -17,23 +17,31 @@ def main():
     )
     args = parser.parse_args()
     repository = os.path.abspath(args.repository)
+    if not os.path.isdir(repository):
+        print(f"ERROE: is not a repository")
+        exit()
     if not os.path.isdir(os.path.join(repository, '.git')):
         print(f"ERROE: is not a git repository")
         exit()
-    focus = f"{repository}/.git/.focus"
-    focus_path = f"{focus}/focus.json"
-    history_path = f"{focus}/history.json"
-    focus_history = f"{focus}/focus_history.json"
-    diff_file = f"{focus}/diff.txt"
-    hash_path = f"{focus}/hash"
-    if os.path.isdir(focus):
-        os.system(f"rm -r {focus}")
-    os.mkdir(focus)
-    os.system(f'cd {repository}')
-    os.system(f"git rev-parse HEAD > {hash_path}")
-    with open(hash_path, 'r') as f:
-        hashnumber = f.readline()[:-1]
-        
+    os.chdir(f'{repository}')
+
+    focus_dir = f"{repository}/.git/.focus"
+    hash_path = f"{focus_dir}/hash"
+    diff_file = f"{focus_dir}/diff"
+    focus_path = f"{focus_dir}/focus.json"
+    history_path = f"{focus_dir}/history.json"
+    focus_history = f"{focus_dir}/focus_history.json"
+
+    hashnumber = ""
+    if os.path.isdir(focus_dir):
+        with open(hash_path, 'r') as f:
+            hashnumber = f.readline()
+    else:
+        os.mkdir(focus_dir)
+        hashnumber = os.popen(f"git rev-parse HEAD").read()[:-1]
+        with open(hash_path, 'w') as f:
+            f.write(hashnumber)        
+
     robot = Robot(
         query_interval=10,
         repository=repository,
@@ -45,9 +53,7 @@ def main():
         hash_path=hash_path,
         is_changed=False
         )
-    # robot.store_change_to_diff_file()
-    # robot.repository_query()
-    # robot.change_focus_history()
+
     p1 = Process(target=ui.main, args=(robot,))
     p1.start()
     p2 = Process(target=robot.run)
