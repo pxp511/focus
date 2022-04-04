@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="focus-xp",
-    version="0.0.3",
+    version="0.0.4",
     author="xp9588",
     author_email="958876660@qq.com",
     description="focus package",

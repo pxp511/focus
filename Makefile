@@ -1,7 +1,10 @@
 lint:
 	python3 -m yapf -ir . -vv
 
-package:
+clean:
+	rm -rf build dist *.egg-info __pycache__ focus/__pycache__
+
+package: clean
 	python3 setup.py bdist_wheel
 
 uninstall:
@@ -15,9 +18,6 @@ upload: package
 
 download:
 	python3 -m pip install focus-xp -U
-
-clean:
-	rm -rf build dist *.egg-info __pycache__ focus/__pycache__
 
 debug: clean uninstall package_install
 
