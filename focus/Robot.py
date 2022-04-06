@@ -3,6 +3,8 @@ import json
 from time import sleep
 import focus.utils as utils
 
+
+
 class Robot(object):
 
     def __init__(
@@ -150,12 +152,14 @@ class Robot(object):
     
     def run(self):
         while True:
-            sleep(self.query_interval)
             if not self.is_change_happend():
-                continue            
-            self.change2diff()
-            self.diff2history()
-            self.history2focus_history()
-            self.renew_hashnumber()
+                sleep(self.query_interval)
+                continue
+            else:       
+                self.change2diff()
+                self.diff2history()
+                self.history2focus_history()
+                self.renew_hashnumber()
+                sleep(self.query_interval)
         # check if the remote repository has changed by query_interval
     

@@ -1,6 +1,7 @@
 from tkinter import *
 
 
+
 def get_change_from_diff_file(diff_file: str):
     lines = open(diff_file, 'r').readlines()
     fpath = ''
