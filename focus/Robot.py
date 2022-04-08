@@ -4,7 +4,6 @@ from time import sleep
 import focus.utils as utils
 
 
-
 class Robot(object):
 
     def __init__(
@@ -12,6 +11,7 @@ class Robot(object):
         query_interval: int,
         repository: str,
         focus_file: str,
+        change_file: str,
         history_file: str,
         focus_history_file: str,
         diff_file: str,
@@ -22,6 +22,7 @@ class Robot(object):
         self._query_interval = query_interval
         self._repository = repository
         self._focus_file = focus_file
+        self._change_file = change_file
         self._history_file = history_file
         self._focus_history_file = focus_history_file
         self._diff_file = diff_file
@@ -63,6 +64,58 @@ class Robot(object):
             f.write(change)
 
 
+    def get_change_json(self) -> list:
+        hashnumber_last = self._hashnumber
+        hashnumber_current = self.get_remote_head_hashnumber()
+        change_content = os.popen(f'git diff  {hashnumber_last} {hashnumber_current} --name-only').read().splitlines()
+        change_list = []
+        print(change_content)
+        for file in change_content:
+            record = {}
+            if not os.path.isfile(os.path.abspath(file)):
+                record["type"] = "file"
+                record["stat"] = "deleted"
+                record["file_path"] = f"{file}"
+                record["block_name"] =  ""
+                record["change"] = {
+                    "time": "",
+                    "author": "",
+                    "message": "",
+                    "detail": ""
+                }
+            else:
+                s = os.popen(f"git log --pretty=oneline -1 {file}").read()
+                commit_id = s[0:s.find(' ')]
+                record["type"] = "file"
+                record["stat"] = "exist"
+                record["file_path"] = f"{file}"
+                record["block_name"] =  ""
+                record["change"] = {
+                    "time": os.popen(f'git log --pretty=format:"%cd" {commit_id} -1').read(),
+                    "author": os.popen(f'git log --pretty=format:"%an" {commit_id} -1').read(),
+                    "message": os.popen(f'git log --pretty=format:"%s" {commit_id} -1').read(),
+                    "detail": ""
+                }
+            change_list.append(record)
+        change_json = {}
+        change_json["change_list"] = change_list
+        with open(f"{self._change_file}", 'w') as f:
+            json.dump(change_json, f, indent=4)
+        return change_list
+
+
+    def renew_history(self, change_list: list):
+        history_file = self._history_file
+        history = {}
+        history["change_list"] = []
+        if os.path.isfile(history_file):
+            with open(history_file, 'r') as f:
+                    history = json.load(f)        
+        history["change_list"] += change_list
+        with open(history_file, 'w') as f:
+            json.dump(history, f, indent=4)
+
+
     def diff2history(self):
         # get the change from the remote repository and add to history file
         diff_path = self._diff_file
@@ -82,9 +135,8 @@ class Robot(object):
             json.dump(history, f, indent=4) 
 
 
-    def history2focus_history(self):
+    def change2focus_history(self):
         # cross-compare history.json and focus.json, then add the changes which user concerns to focus_history.json
-        ##空文件还没有处理
         focus_json = {}
         focus_json["focus_file_list"] = []
         focus_json["focus_block_list"] = []
@@ -96,8 +148,8 @@ class Robot(object):
         
         history_json = {}
         history_json["change_list"] = []
-        if os.path.isfile(self._history_file):
-            with open(self._history_file, 'r') as f:
+        if os.path.isfile(self._change_file):
+            with open(self._change_file, 'r') as f:
                 history_json = json.load(f)
         history = history_json["change_list"]
         result = []
@@ -155,10 +207,10 @@ class Robot(object):
             if not self.is_change_happend():
                 sleep(self.query_interval)
                 continue
-            else:       
-                self.change2diff()
-                self.diff2history()
-                self.history2focus_history()
+            else:
+                change_list = self.get_change_json()
+                self.renew_history(change_list)
+                self.change2focus_history()
                 self.renew_hashnumber()
                 sleep(self.query_interval)
         # check if the remote repository has changed by query_interval

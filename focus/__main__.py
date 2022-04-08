@@ -29,6 +29,7 @@ def main():
     hash_path = f"{focus_dir}/hash"
     diff_file = f"{focus_dir}/diff"
     focus_path = f"{focus_dir}/focus.json"
+    change_path = f"{focus_dir}/change.json"
     history_path = f"{focus_dir}/history.json"
     focus_history = f"{focus_dir}/focus_history.json"
 
@@ -46,6 +47,7 @@ def main():
         query_interval=10,
         repository=repository,
         focus_file=focus_path,
+        change_file=change_path,
         history_file=history_path,
         focus_history_file=focus_history,
         diff_file=diff_file,
