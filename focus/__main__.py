@@ -7,6 +7,16 @@ from focus.Robot import Robot, DEBUG_MODEL
 from multiprocessing import Process
 
 
+def str2bool(s: str) -> bool:
+    if s == "False":
+        return False
+    elif s == "True":
+        return True
+    else:
+        print(f"argument error: debug = s")
+        exit()
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -19,14 +29,13 @@ def main():
     parser.add_argument(
         '-d',
         '--debug',
-        type=bool,
+        type=str2bool,
         default=False,
-        help=f'repository path',
+        help=f"for debug, ignore this argument",
     )
     args = parser.parse_args()
     repository = os.path.abspath(args.repository)
-    global DEBUG_MODEL
-    DEBUG_MODEL = args.debug
+    debug = args.debug
     if not os.path.isdir(repository):
         print(f"ERROE: is not a repository")
         exit()
@@ -37,6 +46,7 @@ def main():
 
     robot = Robot(
         repository=repository,
+        debug=debug
         )
 
     p1 = Process(target=ui.main, args=(repository,))

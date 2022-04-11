@@ -2,7 +2,7 @@ import os
 import json
 from time import sleep
 
-DEBUG_MODEL = False
+DEBUG_MODEL: bool = False
 
 def get_remote_head_hashnumber() -> str:
     if DEBUG_MODEL == True:
@@ -86,7 +86,10 @@ class Robot(object):
     def __init__(
         self,
         repository: str,
+        debug: bool
         ):
+        global DEBUG_MODEL
+        DEBUG_MODEL = debug
         self._query_interval = 10
         self._repository = repository
         focus_dir = f"{repository}/.git/.focus"
@@ -130,7 +133,6 @@ class Robot(object):
 
     def is_change_happend(self):
         hashnumber = get_remote_head_hashnumber()
-        print(hashnumber, self._hashnumber)
         return hashnumber != self._hashnumber
 
 
