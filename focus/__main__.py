@@ -3,7 +3,7 @@ import json
 import argparse
 import focus.ui as ui
 from time import sleep
-from focus.Robot import Robot
+from focus.Robot import Robot, DEBUG_MODEL
 from multiprocessing import Process
 
 
@@ -16,8 +16,17 @@ def main():
         required=True,
         help=f'repository path',
     )
+    parser.add_argument(
+        '-d',
+        '--debug',
+        type=bool,
+        default=False,
+        help=f'repository path',
+    )
     args = parser.parse_args()
     repository = os.path.abspath(args.repository)
+    global DEBUG_MODEL
+    DEBUG_MODEL = args.debug
     if not os.path.isdir(repository):
         print(f"ERROE: is not a repository")
         exit()

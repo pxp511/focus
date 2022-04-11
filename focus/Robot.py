@@ -2,10 +2,15 @@ import os
 import json
 from time import sleep
 
+DEBUG_MODEL = False
 
 def get_remote_head_hashnumber() -> str:
+    if DEBUG_MODEL == True:
         hashnumber = os.popen(f"git rev-parse HEAD").read()[:-1]
-        return hashnumber
+    else:
+        branch_name = os.popen(f"git rev-parse --abbrev-ref HEAD").read()
+        hashnumber = os.popen(f"git rev-parse origin/{branch_name}").read()[:-1]
+    return hashnumber
     
 
 def get_change_from_diff_file(diff_file: str):
@@ -91,6 +96,9 @@ class Robot(object):
         self._diff_file = f"{focus_dir}/diff"
         self._hashnumber = ""   # hashnumber of last time
         self._hash_path = f"{focus_dir}/hash"
+        if DEBUG_MODEL == False:
+            print("Fetching new changes from origin......")
+            os.system(f"git fetch")
         if os.path.isdir(focus_dir):
             with open(self._hash_path, 'r') as f:
                 self._hashnumber = f.readline()
@@ -122,6 +130,7 @@ class Robot(object):
 
     def is_change_happend(self):
         hashnumber = get_remote_head_hashnumber()
+        print(hashnumber, self._hashnumber)
         return hashnumber != self._hashnumber
 
 
