@@ -1,9 +1,11 @@
 # focus
-todo: 将focus-history的改动适配图形界面
+todo:
+    将focus-history的改动适配图形界面
+
 环境要求:
     python3
 
-库要求：
+库要求:
     tkinter
     multiprocessing
 

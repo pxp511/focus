@@ -1,9 +1,8 @@
 import os
-import json
 import argparse
 import focus.ui as ui
 from time import sleep
-from focus.Robot import Robot, DEBUG_MODEL
+from focus.Robot import Robot
 from multiprocessing import Process
 
 
@@ -33,8 +32,16 @@ def main():
         default=False,
         help=f"for debug, ignore this argument",
     )
+    parser.add_argument(
+        '-q',
+        '--queryinterval',
+        type=int,
+        default=600,
+        help=f"for debug, ignore this argument",
+    )
     args = parser.parse_args()
     repository = os.path.abspath(args.repository)
+    queryinterval = args.queryinterval
     debug = args.debug
     if not os.path.isdir(repository):
         print(f"ERROE: is not a repository")
@@ -46,7 +53,8 @@ def main():
 
     robot = Robot(
         repository=repository,
-        debug=debug
+        debug=debug,
+        queryinterval=queryinterval
         )
 
     p1 = Process(target=ui.main, args=(repository,))

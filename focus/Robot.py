@@ -4,6 +4,13 @@ from time import sleep
 
 DEBUG_MODEL: bool = False
 
+
+def fetch_from_origin():
+    print("Fetching new changes from origin......")
+    os.system(f"git fetch")
+    print("Done fetching.")
+    
+    
 def get_remote_head_hashnumber() -> str:
     if DEBUG_MODEL == True:
         hashnumber = os.popen(f"git rev-parse HEAD").read()[:-1]
@@ -86,11 +93,12 @@ class Robot(object):
     def __init__(
         self,
         repository: str,
-        debug: bool
+        debug: bool,
+        queryinterval: int 
         ):
         global DEBUG_MODEL
         DEBUG_MODEL = debug
-        self._query_interval = 10
+        self._query_interval = queryinterval
         self._repository = repository
         focus_dir = f"{repository}/.git/.focus"
         self._focus_file = f"{focus_dir}/focus.json"
@@ -99,9 +107,8 @@ class Robot(object):
         self._diff_file = f"{focus_dir}/diff"
         self._hashnumber = ""   # hashnumber of last time
         self._hash_path = f"{focus_dir}/hash"
-        if DEBUG_MODEL == False:
-            print("Fetching new changes from origin......")
-            os.system(f"git fetch")
+        if not DEBUG_MODEL:
+            fetch_from_origin()
         if os.path.isdir(focus_dir):
             with open(self._hash_path, 'r') as f:
                 self._hashnumber = f.readline()
@@ -324,5 +331,7 @@ class Robot(object):
                 self.renew_history(focus_change_list)
                 self.renew_hashnumber()
                 sleep(self.query_interval)
+            if not DEBUG_MODEL:
+                fetch_from_origin()
         # check if the remote repository has changed by query_interval
     
