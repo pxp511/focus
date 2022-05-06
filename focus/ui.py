@@ -1,10 +1,8 @@
 import os
 import json
 from tkinter import *
-    
 
 focus_file = ""
-
 
 def add_focus_file(
     file_path: str,
@@ -76,71 +74,33 @@ def delete_focus_directory(
     hint("no such focus directory")
 
 
-def get_history(display: bool):
-    # get the focus_change_history_file
-    # if display == True: display focus_change_history_file in terminal
-    return
-
-def do_merge():
-    # os.system("git merge")
-    return
-
-def get_focus():
-    # display focus-points from focus.json
-    return
-
 def hint(s: str):
     hint = Tk()
     hint.geometry('240x160')
     hint.title('focus')
     hint_label = Label(hint, text=s)
     hint_label.pack()
-    
-
-def is_block(s: str):
-    # whether is a valid block
-    return True
-
-
-def is_file(s: str):
-    # whether is a valid file
-    return True
 
 
 def main(repository):
-    # maximum of changes for show 
     focus_dir = f"{repository}/.git/.focus"
     global focus_file
     focus_file = f"{focus_dir}/focus.json"
     change_file = f"{focus_dir}/change.json"
     history_file = f"{focus_dir}/history.json"
-    history_count = 3
+    history_count = 5
     history_path = history_file
+    length = '480'
+    height = '320'
     root = Tk()
-    root.geometry('480x320')
+    root.geometry(f'{length}x{height}')
     root.title('focus')
     
-    var_list = []
-    label_list = []
-    for i in range(history_count):
-        var=StringVar()
-        var.set("")
-        label = Label(root, textvariable=var)
-        var_list.append(var)
-        label_list.append(label)
-        
-    message_panel_file = Frame(root)
-    message_label_file = Label(message_panel_file, text="file path:")
-    message_entry_file = Entry(message_panel_file)
-    message_panel_block = Frame(root)
-    message_label_block = Label(message_panel_block, text="directory path:")
-    message_entry_block = Entry(message_panel_block)
-    
     def add():
-        nonlocal message_entry_file
-        nonlocal message_entry_block
-        file_path = message_entry_file.get()
-        directory_path = message_entry_block.get()
+        nonlocal file_message_entry
+        nonlocal dir_message_entry
+        file_path = file_message_entry.get()
+        directory_path = dir_message_entry.get()
         if file_path != "":
             add_focus_file(file_path)
         if directory_path != "":
@@ -148,58 +108,109 @@ def main(repository):
         
             
     def delete():
-        nonlocal message_entry_file
-        nonlocal message_entry_block
-        file_path = message_entry_file.get()
-        directory_path = message_entry_block.get()
+        nonlocal file_message_entry
+        nonlocal dir_message_entry
+        file_path = file_message_entry.get()
+        directory_path = dir_message_entry.get()
         if file_path != "":
             delete_focus_file(file_path)
         if directory_path != "":
             delete_focus_directory(directory_path)
-    
+
+
     def renew():
-        focus_history_json = {}
-        focus_history_json["change_list"] = []
         if os.path.isfile(history_path):
             with open(history_path, 'r') as f:
-                focus_history_json = json.load(f)
-        # if len(focus_history_json["change_list"]) != 0:
-        #     print(focus_history_json["change_list"])
-        if len(focus_history_json["change_list"]) > history_count:
+                history_json = json.load(f)
+        change_list: list = history_json['change_list']
+        if len(change_list) > history_count:
             count_of_history_for_show = history_count
+            ellipsis = '\n......'
         else:
-            count_of_history_for_show = len(focus_history_json["change_list"])
-        for i in range(count_of_history_for_show):
-            record = focus_history_json["change_list"][- (i + 1)]
+            count_of_history_for_show = len(change_list)
+            ellipsis = ''
+        content = ''
+        for index in range(len(change_list) - 1, len(change_list) - count_of_history_for_show - 1, -1):
+            record: dict = change_list[index]
             type_of_record = record["type"]
+            if type_of_record == 'directory':
+                type_of_record = 'dir'
             stat = record["stat"]
             path = record["path"]
             time = record["change"]["time"]
             time = time[time.find(" "): time.rfind(" ")]
             author = record["change"]["author"]
             message = record["change"]["message"]
-            # 这里没有对关注点是文件还是目录分类讨论
-            text = f"{type_of_record}: {path}   {time}   {author}   {stat}"
-            var_list[i].set(text)
+            text = f"{type_of_record:^5}   {time:^25}   {author:^10}   {stat:^10}   {path}"
+            content += text + '\n'
+        content = content[:-1] + ellipsis
+        history_var.set(content)
 
+
+    def show_all_history():
+        if os.path.isfile(history_path):
+            with open(history_path, 'r') as f:
+                history_json = json.load(f)
+        change_list: list = history_json['change_list']
+        if change_list == []:
+            return
+        content = ''
+        for index in range(len(change_list) - 1, -1, -1):
+            record: dict = change_list[index]
+            type_of_record = record["type"]
+            if type_of_record == 'directory':
+                type_of_record = 'dir'
+            stat = record["stat"]
+            path = record["path"]
+            time = record["change"]["time"]
+            time = time[time.find(" "): time.rfind(" ")]
+            author = record["change"]["author"]
+            message = record["change"]["message"]
+            text = f"{type_of_record:^4}   {time:^25}   {author:^10}   {stat:^10}   {path}"
+            content += text + '\n'
+        content_window = Tk()
+        content_window.geometry(f'{length}x{height}')
+        content_window.title('all history')
+        title_line = f"{'':^4}   {'time':^25}   {'author':^10}   {'status':^10}   {'path'}"
+        content_title_line = Label(content_window, text=title_line, fg='grey')
+        content_title_line.pack()
+        content_label = Label(content_window, text=content)
+        content_label.pack()
+
+
+    history_var = StringVar()
+    history_var.set("")
+    history_label = Label(root, textvariable=history_var)
+
+    message_panel = Frame(root)
+    file_message_panel = Frame(message_panel)
+    file_message_label = Label(file_message_panel, text="file path:")
+    file_message_entry = Entry(file_message_panel)
+    file_message_label.pack(side=LEFT)
+    file_message_entry.pack(side=RIGHT)
+    file_message_panel.pack()
+    dir_message_panel = Frame(message_panel)
+    dir_message_label = Label(dir_message_panel, text="dir path:")
+    dir_message_entry = Entry(dir_message_panel)
+    dir_message_label.pack(side=LEFT)
+    dir_message_entry.pack(side=RIGHT)
+    dir_message_panel.pack()
+    button_message_panel = Frame(message_panel)
+    button_add = Button(button_message_panel, text='add', command=add)
+    button_delete = Button(button_message_panel, text='delete', command=delete)
+    button_add.pack(side=LEFT)
+    button_delete.pack(side=RIGHT)
+    button_message_panel.pack()
     
-    bottom_panel = Frame(root)
-    add_button = Button(bottom_panel, text='add', command=add)
-    delet_button = Button(bottom_panel, text='delete', command=delete)
-    renew_button = Button(bottom_panel, text='renew', command=renew)
+    renew_button = Button(root, text='show all history', command=show_all_history)
     
-    message_label_file.pack(side=LEFT)
-    message_entry_file.pack(side=RIGHT)
-    message_label_block.pack(side=LEFT)
-    message_entry_block.pack(side=RIGHT)
-    message_panel_file.pack()
-    message_panel_block.pack()
-    add_button.pack()
-    delet_button.pack()
+    message_panel.pack()
+    blank_label = Label(root, text="\n")
+    blank_label.pack()
+    recent_change_label = Label(root, text="recent change", fg='grey', font=('Arial', 18))
+    recent_change_label.pack()
+    history_label.pack()
     renew_button.pack()
-    bottom_panel.pack()
-    for label in label_list:
-        label.pack()
     renew()
     mainloop()
 

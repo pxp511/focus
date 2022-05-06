@@ -3,7 +3,7 @@ todo:
     将focus-history的改动适配图形界面
 
 环境要求:
-    python3
+    python 3.10
 
 库要求:
     tkinter

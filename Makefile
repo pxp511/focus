@@ -22,4 +22,4 @@ download:
 debug: clean uninstall package_install
 
 focus_run:
-	python3 -m focus --repository ~/mesh-label
+	python3 -m focus --repository ~/mesh-label -d true

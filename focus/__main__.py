@@ -7,9 +7,9 @@ from multiprocessing import Process
 
 
 def str2bool(s: str) -> bool:
-    if s == "False":
+    if s in ["False", 'false', 'f', '0']:
         return False
-    elif s == "True":
+    elif s in ["True", 'true', 't', '1']:
         return True
     else:
         print(f"argument error: debug = s")
@@ -37,7 +37,7 @@ def main():
         '--queryinterval',
         type=int,
         default=600,
-        help=f"for debug, ignore this argument",
+        help=f"query interval setting",
     )
     args = parser.parse_args()
     repository = os.path.abspath(args.repository)
