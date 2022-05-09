@@ -50,6 +50,7 @@ def main():
         print(f"ERROE: is not a git repository")
         exit()
     os.chdir(f'{repository}')
+    print(f"Now monitoring directory: {repository}")
 
     robot = Robot(
         repository=repository,
@@ -57,7 +58,7 @@ def main():
         queryinterval=queryinterval
         )
 
-    p1 = Process(target=ui.main, args=(repository,))
+    p1 = Process(target=ui.main, args=(robot,))
     p1.start()
     p2 = Process(target=robot.run)
     p2.start()

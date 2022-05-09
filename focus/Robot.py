@@ -3,18 +3,27 @@ import json
 from time import sleep
 
 
-def fetch_from_origin():
+def fetch_from_origin(debug: bool):
     print("Fetching new changes from origin......")
-    os.system(f"git fetch")
-    print("Done fetching.")
+    if not debug:
+        os.system(f"git fetch")
+    print("Done fetching, you don't need to fetch anymore")
     
-    
-def get_remote_head_hashnumber(debug: bool) -> str:
-    if debug == True:
-        hashnumber = os.popen(f"git rev-parse HEAD").read()[:-1]
-    else:
-        branch_name = os.popen(f"git rev-parse --abbrev-ref HEAD").read()
-        hashnumber = os.popen(f"git rev-parse origin/{branch_name}").read()[:-1]
+
+def get_local_head_hashnumber() -> str:
+    hashnumber = os.popen(f"git rev-parse HEAD").read()[:-1]
+    return hashnumber
+
+
+def get_remote_head_hashnumber() -> str:
+    try:
+        branch_name = os.popen(f"git rev-parse --abbrev-ref HEAD").read()[:-1]
+        upstream = '{upstream}'
+        remote_name = os.popen(f"git rev-parse --abbrev-ref {branch_name}@{upstream}").read()[:-1]
+        hashnumber = os.popen(f"git rev-parse {remote_name}").read()[:-1]
+    except Exception as e:
+        print(e)
+        exit()
     return hashnumber
 
 
@@ -34,58 +43,31 @@ class Robot(object):
         self._change_file = f"{focus_dir}/change.json"
         self._history_file = f"{focus_dir}/history.json"
         self._diff_file = f"{focus_dir}/diff"
-        self._hashnumber = ""   # hashnumber of last time
-        self._hash_path = f"{focus_dir}/hash"
-        if not self._debug:
-            fetch_from_origin()
-        if os.path.isdir(focus_dir):
-            with open(self._hash_path, 'r') as f:
-                self._hashnumber = f.readline()
-        else:
+        fetch_from_origin(self._debug)
+        if not os.path.isdir(focus_dir):
             os.mkdir(focus_dir)
-            hashnumber = get_remote_head_hashnumber(self._debug)
-            with open(self._hash_path, 'w') as f:
-                f.write(hashnumber)
             focus_json = {}
             focus_json["focus_file_list"] = []
             focus_json["focus_directory_list"] = []
             with open(self._focus_file, 'w') as f:
                 json.dump(focus_json, f, indent=4)
-
-
-    def get_local_head_hashnumber(self) -> str:
-        with open(self._hash_path, 'r') as f:
-            hashnumber = f.readline()
-        return hashnumber
-
-
-    def renew_hashnumber(self):
-        hash_path = self._hash_path
-        hashnumber_current = get_remote_head_hashnumber(self._debug)
-        self._hashnumber = hashnumber_current
-        with open(f'{hash_path}', 'w') as f:
-            f.write(hashnumber_current)
+        history_json = {}
+        history_json["change_list"] = []
+        with open(self._history_file, 'w') as f:
+            json.dump(history_json, f, indent=4)
 
 
     def is_change_happend(self):
-        hashnumber = get_remote_head_hashnumber(self._debug)
-        return hashnumber != self._hashnumber
-
-
-    def change2diff(self):
-        hashnumber_last = self._hashnumber
-        hashnumber_current = get_remote_head_hashnumber(self._debug)
-        diff_path = self._diff_file
-        change = os.popen(f"git diff {hashnumber_last} {hashnumber_current}").read()
-        with open(f'{diff_path}', 'w') as f:
-            f.write(change)
+        remote_hashnumber = get_remote_head_hashnumber()
+        local_hashnumber = get_local_head_hashnumber()
+        return remote_hashnumber != local_hashnumber
 
 
     def get_change_list(self) -> list: 
         # get changed files
-        hashnumber_last = self._hashnumber
-        hashnumber_current = get_remote_head_hashnumber(self._debug)
-        change_content = os.popen(f'git diff  {hashnumber_last} {hashnumber_current} --name-only').read().splitlines()
+        remote_hashnumber = get_remote_head_hashnumber()
+        local_hashnumber = get_local_head_hashnumber()
+        change_content = os.popen(f'git diff  {local_hashnumber} {remote_hashnumber} --name-only').read().splitlines()
         change_list = []
         for file in change_content:
             record = {}
@@ -167,20 +149,15 @@ class Robot(object):
     def renew_change(self, focus_change_list: list):
         change_json = {}
         change_json["change_list"] = focus_change_list
-        with open(f"{self._change_file}", 'w') as f:
+        with open(self._change_file, 'w') as f:
             json.dump(change_json, f, indent=4)
 
 
-    def renew_history(self, focus_change_list: list):
-        history_file = self._history_file
-        history = {}
-        history["change_list"] = []
-        if os.path.isfile(history_file):
-            with open(history_file, 'r') as f:
-                    history = json.load(f)
-        history["change_list"] += focus_change_list
-        with open(history_file, 'w') as f:
-            json.dump(history, f, indent=4)
+    def renew_history(self, change_list: list):
+        history_json = {}
+        history_json["change_list"] = change_list
+        with open(self._history_file, 'w') as f:
+            json.dump(history_json, f, indent=4)
 
 
     @property
@@ -191,17 +168,16 @@ class Robot(object):
     def query_interval(self, query_interval):
         self._query_interval = query_interval
     
+    def deal_changes(self):
+        change_list = self.get_change_list()
+        focus_change_list = self.get_focus_change_list(change_list)
+        self.renew_history(change_list)
+        self.renew_change(focus_change_list)
+
     def run(self):
         while True:
-            if not self.is_change_happend():
-                sleep(self.query_interval)
-            else:
-                change_list = self.get_change_list()
-                focus_change_list = self.get_focus_change_list(change_list)
-                self.renew_change(focus_change_list)
-                self.renew_history(focus_change_list)
-                self.renew_hashnumber()
-                sleep(self.query_interval)
-            if not self._debug:
-                fetch_from_origin()
+            if self.is_change_happend():
+                self.deal_changes()
+            sleep(self.query_interval)
+            fetch_from_origin(self._debug)
         # check if the remote repository has changed by query_interval

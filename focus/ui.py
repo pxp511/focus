@@ -1,6 +1,7 @@
 import os
 import json
 from tkinter import *
+from focus.Robot import Robot, fetch_from_origin
 
 focus_file = ""
 
@@ -82,14 +83,14 @@ def hint(s: str):
     hint_label.pack()
 
 
-def main(repository):
+def main(robot: Robot):
+    repository = robot._repository
     focus_dir = f"{repository}/.git/.focus"
     global focus_file
     focus_file = f"{focus_dir}/focus.json"
     change_file = f"{focus_dir}/change.json"
     history_file = f"{focus_dir}/history.json"
-    history_count = 5
-    history_path = history_file
+    history_count = 3
     length = '480'
     height = '320'
     root = Tk()
@@ -119,8 +120,10 @@ def main(repository):
 
 
     def renew():
-        if os.path.isfile(history_path):
-            with open(history_path, 'r') as f:
+        if robot.is_change_happend():
+            robot.deal_changes()
+        if os.path.isfile(change_file):
+            with open(change_file, 'r') as f:
                 history_json = json.load(f)
         change_list: list = history_json['change_list']
         if len(change_list) > history_count:
@@ -148,8 +151,8 @@ def main(repository):
 
 
     def show_all_history():
-        if os.path.isfile(history_path):
-            with open(history_path, 'r') as f:
+        if os.path.isfile(change_file):
+            with open(change_file, 'r') as f:
                 history_json = json.load(f)
         change_list: list = history_json['change_list']
         if change_list == []:
@@ -177,40 +180,54 @@ def main(repository):
         content_label = Label(content_window, text=content)
         content_label.pack()
 
+    def fetch():
+        fetch_from_origin(robot._debug)
+        hint("Done fetching.")
 
-    history_var = StringVar()
-    history_var.set("")
-    history_label = Label(root, textvariable=history_var)
 
-    message_panel = Frame(root)
-    file_message_panel = Frame(message_panel)
+    add_delete_panel = Frame(root)
+    file_message_panel = Frame(add_delete_panel)
     file_message_label = Label(file_message_panel, text="file path:")
     file_message_entry = Entry(file_message_panel)
     file_message_label.pack(side=LEFT)
     file_message_entry.pack(side=RIGHT)
     file_message_panel.pack()
-    dir_message_panel = Frame(message_panel)
+    dir_message_panel = Frame(add_delete_panel)
     dir_message_label = Label(dir_message_panel, text="dir path:")
     dir_message_entry = Entry(dir_message_panel)
     dir_message_label.pack(side=LEFT)
     dir_message_entry.pack(side=RIGHT)
     dir_message_panel.pack()
-    button_message_panel = Frame(message_panel)
+    button_message_panel = Frame(add_delete_panel)
     button_add = Button(button_message_panel, text='add', command=add)
     button_delete = Button(button_message_panel, text='delete', command=delete)
     button_add.pack(side=LEFT)
     button_delete.pack(side=RIGHT)
     button_message_panel.pack()
+    add_delete_panel.pack()
     
-    renew_button = Button(root, text='show all history', command=show_all_history)
-    
-    message_panel.pack()
-    blank_label = Label(root, text="\n")
+    renew_history_display_panel = Frame(root)
+    blank_label = Label(renew_history_display_panel, text="\n")
     blank_label.pack()
-    recent_change_label = Label(root, text="recent change", fg='grey', font=('Arial', 18))
+    recent_change_label = Label(renew_history_display_panel, text="your focus change", fg='black', font=('Arial', 18))
     recent_change_label.pack()
+    title_line = f"{'':^4}   {'time':^25}   {'author':^10}   {'status':^10}   {'path'}"
+    content_title_line = Label(renew_history_display_panel, text=title_line, fg='grey')
+    content_title_line.pack()
+    history_var = StringVar()
+    history_var.set("")
+    history_label = Label(renew_history_display_panel, textvariable=history_var)
     history_label.pack()
-    renew_button.pack()
+    renew_history_panel = Frame(renew_history_display_panel)
+    renew_button = Button(renew_history_panel, text='renew', command=renew)
+    renew_button.pack(side=LEFT)
+    history_button = Button(renew_history_panel, text='show all', command=show_all_history)
+    history_button.pack(side=LEFT)
+    fetch_button = Button(renew_history_panel, text='fetch', command=fetch)
+    fetch_button.pack(side=LEFT)
+    renew_history_panel.pack()
+    renew_history_display_panel.pack()
+
     renew()
     mainloop()
 
