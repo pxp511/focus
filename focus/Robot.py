@@ -4,14 +4,22 @@ from time import sleep
 
 
 def fetch_from_origin(debug: bool):
-    print("Fetching new changes from origin......")
-    if not debug:
-        os.system(f"git fetch")
-    print("Done fetching, you don't need to fetch anymore")
+    try:
+        print("Fetching new changes from origin......")
+        if not debug:
+            os.system(f"git fetch")
+        print("Done fetching, you don't need to fetch anymore")
+    except Exception as e:
+        print(e)
+        exit()
     
 
 def get_local_head_hashnumber() -> str:
-    hashnumber = os.popen(f"git rev-parse HEAD").read()[:-1]
+    try:
+        hashnumber = os.popen(f"git rev-parse HEAD").read()[:-1]
+    except Exception as e:
+        print(e)
+        exit()
     return hashnumber
 
 
@@ -55,12 +63,29 @@ class Robot(object):
         history_json["change_list"] = []
         with open(self._history_file, 'w') as f:
             json.dump(history_json, f, indent=4)
+        change_json = {}
+        change_json["change_list"] = []
+        with open(self._change_file, 'w') as f:
+            json.dump(change_json, f, indent=4)
 
 
-    def is_change_happend(self):
+    def is_remote_changed(self):
         remote_hashnumber = get_remote_head_hashnumber()
         local_hashnumber = get_local_head_hashnumber()
-        return remote_hashnumber != local_hashnumber
+        change_content = os.popen(f"git rev-list --left-right {local_hashnumber}...{remote_hashnumber}").read().splitlines()
+        left = 0
+        right = 0
+        for line in change_content:
+            if line[0] == '<':
+                left += 1
+            elif line[0] == '>':
+                right += 1
+            else:
+                print('error: is_remote_changed error')
+        if right != 0:
+            return True
+        else:
+            return False
 
 
     def get_change_list(self) -> list: 
@@ -168,7 +193,7 @@ class Robot(object):
     def query_interval(self, query_interval):
         self._query_interval = query_interval
     
-    def deal_changes(self):
+    def change_parse(self):
         change_list = self.get_change_list()
         focus_change_list = self.get_focus_change_list(change_list)
         self.renew_history(change_list)
@@ -176,8 +201,8 @@ class Robot(object):
 
     def run(self):
         while True:
-            if self.is_change_happend():
-                self.deal_changes()
             sleep(self.query_interval)
             fetch_from_origin(self._debug)
+            if self.is_remote_changed():
+                self.change_parse()
         # check if the remote repository has changed by query_interval

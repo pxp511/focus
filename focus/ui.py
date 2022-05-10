@@ -120,8 +120,8 @@ def main(robot: Robot):
 
 
     def renew():
-        if robot.is_change_happend():
-            robot.deal_changes()
+        if robot.is_remote_changed():
+            robot.change_parse()
         if os.path.isfile(change_file):
             with open(change_file, 'r') as f:
                 history_json = json.load(f)
