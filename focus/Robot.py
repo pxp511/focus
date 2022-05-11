@@ -92,32 +92,23 @@ class Robot(object):
         # get changed files
         remote_hashnumber = get_remote_head_hashnumber()
         local_hashnumber = get_local_head_hashnumber()
-        change_content = os.popen(f'git diff  {local_hashnumber} {remote_hashnumber} --name-only').read().splitlines()
+        merge_base = os.popen(f"git merge-base {remote_hashnumber} {local_hashnumber}").read()[:-1]
+        change_content = os.popen(f'git diff  {merge_base} {remote_hashnumber} --name-only').read().splitlines()
         change_list = []
+        yourself = os.popen('git config user.name').read()[:-1]
         for file in change_content:
             record = {}
-            if not os.path.isfile(os.path.abspath(file)):
-                record["type"] = "file"
-                record["stat"] = "deleted"
-                record["path"] = f"{file}"
-                record["change"] = {
-                    "time": "",
-                    "author": "",
-                    "message": "",
-                    "detail": ""
-                }
-            else:
-                s = os.popen(f"git log --pretty=oneline -1 {file}").read()
-                commit_id = s[0:s.find(' ')]
-                record["type"] = "file"
-                record["stat"] = "exist"
-                record["path"] = f"{file}"
-                record["change"] = {
-                    "time": os.popen(f'git log --pretty=format:"%cd" {commit_id} -1').read(),
-                    "author": os.popen(f'git log --pretty=format:"%an" {commit_id} -1').read(),
-                    "message": os.popen(f'git log --pretty=format:"%s" {commit_id} -1').read(),
-                    "detail": ""
-                }
+            record["type"] = "file"
+            record["stat"] = "exist"
+            record["path"] = f"{file}"
+            record["change"] = {
+                "time": os.popen(f'git log --pretty=format:"%cd" {remote_hashnumber} -1').read(),
+                "author": os.popen(f'git log --pretty=format:"%an" {remote_hashnumber} -1').read(),
+                "message": os.popen(f'git log --pretty=format:"%s" {remote_hashnumber} -1').read(),
+                "detail": ""
+            }
+            if record["change"]["author"] == yourself:
+                continue
             change_list.append(record)
         return change_list
 

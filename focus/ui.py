@@ -9,38 +9,38 @@ def add_focus_file(
     file_path: str,
     ):
     global focus_file
-    if not os.path.isfile(os.path.abspath(file_path)):
-        hint("no such file")
-        return
     with open(focus_file, 'r') as f:
         focus_json = json.load(f)
     for file in focus_json["focus_file_list"]:
         if file_path == file:
             hint("file already been focused")
             return
+    if os.path.isfile(os.path.abspath(file_path)):
+        hint("successfully add a focus file")
+    else:
+        hint("WARNNING \n the file doesn't exist, but added anyway.\n i can't do correction for you, \n so make sure your path is right")
     focus_json["focus_file_list"].append(file_path)
     with open(focus_file, 'w') as f:
         json.dump(focus_json, f, indent=4)
-    hint("successfully add a focus file")
 
 
 def add_focus_directory(
     directory_path: str,
     ):
     global focus_file
-    if not os.path.isdir(os.path.abspath(directory_path)):
-        hint("no such directory")
-        return
     with open(focus_file, 'r') as f:
         focus_json = json.load(f)
     for directory in focus_json["focus_directory_list"]:
         if directory_path == directory:
             hint("directory already been focused")
             return
+    if os.path.isdir(os.path.abspath(directory_path)):
+        hint("successfully add a focus directory")
+    else:
+        hint("WARNNING \n the directory doesn't exist, but added anyway.\n i can't do correction for you, \n so make sure your path is right")
     focus_json["focus_directory_list"].append(directory_path)
     with open(focus_file, 'w') as f:
         json.dump(focus_json, f, indent=4)
-    hint("successfully add a focus directory")
 
 
 def delete_focus_file(
@@ -77,7 +77,7 @@ def delete_focus_directory(
 
 def hint(s: str):
     hint = Tk()
-    hint.geometry('240x160')
+    hint.geometry('360x100')
     hint.title('focus')
     hint_label = Label(hint, text=s)
     hint_label.pack()
@@ -157,28 +157,53 @@ def main(robot: Robot):
         change_list: list = history_json['change_list']
         if change_list == []:
             return
-        content = ''
+        content_window = Tk()
+        content_window.geometry(f'600x400')
+        content_window.title('all history')
+        type_label_topline = Label(content_window, text="type")
+        type_label_topline.grid(row=0, column=0)
+        path_label_topline = Label(content_window, text="path")
+        path_label_topline.grid(row=0, column=1)
+        stat_label_topline = Label(content_window, text="status")
+        stat_label_topline.grid(row=0, column=2)
+        time_label_topline = Label(content_window, text="time")
+        time_label_topline.grid(row=0, column=3)
+        author_label_topline = Label(content_window, text="author")
+        author_label_topline.grid(row=0, column=4)
+        message_label_topline = Label(content_window, text="message")
+        message_label_topline.grid(row=0, column=5)
+        file_label_topline = Label(content_window, text="file")
+        file_label_topline.grid(row=0, column=6)
+        row_number = 0
         for index in range(len(change_list) - 1, -1, -1):
+            row_number += 1
             record: dict = change_list[index]
             type_of_record = record["type"]
             if type_of_record == 'directory':
                 type_of_record = 'dir'
-            stat = record["stat"]
             path = record["path"]
+            stat = record["stat"]
             time = record["change"]["time"]
             time = time[time.find(" "): time.rfind(" ")]
             author = record["change"]["author"]
             message = record["change"]["message"]
-            text = f"{type_of_record:^4}   {time:^25}   {author:^10}   {stat:^10}   {path}"
-            content += text + '\n'
-        content_window = Tk()
-        content_window.geometry(f'{length}x{height}')
-        content_window.title('all history')
-        title_line = f"{'':^4}   {'time':^25}   {'author':^10}   {'status':^10}   {'path'}"
-        content_title_line = Label(content_window, text=title_line, fg='grey')
-        content_title_line.pack()
-        content_label = Label(content_window, text=content)
-        content_label.pack()
+            file = record.get("file", "")
+            type_label = Label(content_window, text=type_of_record)
+            type_label.grid(row=row_number, column=0)
+            path_label = Label(content_window, text=path)
+            path_label.grid(row=row_number, column=1)
+            stat_label = Label(content_window, text=stat)
+            stat_label.grid(row=row_number, column=2)
+            time_label = Label(content_window, text=time)
+            time_label.grid(row=row_number, column=3)
+            author_label = Label(content_window, text=author)
+            author_label.grid(row=row_number, column=4)
+            message_label = Label(content_window, text=message)
+            message_label.grid(row=row_number, column=5)
+            file_label = Label(content_window, text=file)
+            file_label.grid(row=row_number, column=6)
+        content_window.mainloop()
+
 
     def fetch():
         fetch_from_origin(robot._debug)
