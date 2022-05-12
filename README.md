@@ -4,7 +4,7 @@
     自动将当前HEAD所在分支所跟踪的远程代码fetch到本地，并与当前HEAD比较，得出你所关心的差异
 
 todo:
-    图形界面美化:message过长，path过长，滑动条，颜色，history展示框
+    图形界面美化:message过长，path过长，滑动条，颜色
 
 环境要求:
     python 3.10

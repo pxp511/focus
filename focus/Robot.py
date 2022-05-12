@@ -88,6 +88,18 @@ class Robot(object):
             return False
 
 
+    def get_last_change_hash(self, merge_base, remote_hashnumber, file):
+        hash_list = os.popen(f"git rev-list  {merge_base}...{remote_hashnumber}").read().splitlines()
+        hash_list.append(merge_base)
+        for index in range(len(hash_list)):
+            assert index != len(hash_list) - 1
+            curren_hash = hash_list[index]
+            last_hash = hash_list[index + 1]
+            change_content = os.popen(f'git diff  {curren_hash} {last_hash} --name-only').read().splitlines()
+            if file in change_content:
+                return curren_hash
+
+
     def get_change_list(self) -> list: 
         # get changed files
         remote_hashnumber = get_remote_head_hashnumber()
@@ -97,15 +109,15 @@ class Robot(object):
         change_list = []
         yourself = os.popen('git config user.name').read()[:-1]
         for file in change_content:
+            last_change_hash = self.get_last_change_hash(merge_base, remote_hashnumber, file)
             record = {}
             record["type"] = "file"
             record["stat"] = "exist"
             record["path"] = f"{file}"
             record["change"] = {
-                "time": os.popen(f'git log --pretty=format:"%cd" {remote_hashnumber} -1').read(),
-                "author": os.popen(f'git log --pretty=format:"%an" {remote_hashnumber} -1').read(),
-                "message": os.popen(f'git log --pretty=format:"%s" {remote_hashnumber} -1').read(),
-                "detail": ""
+                "time": os.popen(f'git log --pretty=format:"%cd" {last_change_hash} -1').read(),
+                "author": os.popen(f'git log --pretty=format:"%an" {last_change_hash} -1').read(),
+                "message": os.popen(f'git log --pretty=format:"%s" {last_change_hash} -1').read(),
             }
             if record["change"]["author"] == yourself:
                 continue
