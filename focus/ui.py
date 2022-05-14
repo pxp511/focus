@@ -199,20 +199,32 @@ def main(robot: Robot):
 
 
     def show_all_history():
+        def myfunction(event):
+            canvas.configure(scrollregion=canvas.bbox("all"))
         if os.path.isfile(change_file):
             with open(change_file, 'r') as f:
                 history_json = json.load(f)
         change_list: list = history_json['change_list']
         if change_list == []:
+            hint("the change history is empty")
             return
+        width = 1300
+        height = 670
         content_window = Tk()
-        content_window.geometry(f'{length}x{height}')
+        content_window.geometry(f'{width}x{height}')
         content_window.configure(bg="white")
         content_window.title('focus')
-        all_changes_label = Label(content_window, text="\nall changes", fg='black', font=('Arial', 18), bg='white')
-        all_changes_label.pack(pady=10)
-        content_frame = Frame(content_window, bg='white')
-        row_number = 0
+        canvas = Canvas(content_window, bg='white')
+        myscrollbar=Scrollbar(content_window,orient="vertical",command=canvas.yview)
+        myscrollbar.place(x=width - 15, y=0, height=height)
+        canvas.configure(yscrollcommand=myscrollbar.set)
+        canvas.place(x=0, y=0, width=width, height=height)
+        content_frame = Frame(canvas, bg='white')
+        content_frame.bind("<Configure>",myfunction)
+        canvas.create_window((65, 50), window=content_frame,anchor="nw")
+        frame_title = Label(content_frame, text="all focus", font=('Arial', 18), bg='white')
+        frame_title.grid(row=0, column=4, pady=20)
+        row_number = 1
         type_label_topline = Label(content_frame, text="type", font=('Arial', 16), bg='white')
         type_label_topline.grid(row=row_number, column=0, pady=15)
         path_label_topline = Label(content_frame, text="path", font=('Arial', 16), bg='white')
@@ -260,8 +272,63 @@ def main(robot: Robot):
             pos = get_pos(file, wraplength)
             file_label = Label(content_frame, text=file, width=30, height=3, wraplength=wraplength, anchor=pos, bg='white')
             file_label.grid(row=row_number, column=6)
-        content_frame.pack()
         content_window.mainloop()
+
+
+    def show_all_focus():
+        def myfunction(event):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+        if os.path.isfile(focus_file):
+            with open(focus_file, 'r') as f:
+                focus_json = json.load(f)
+        focus_file_list: list = focus_json['focus_file_list']
+        focus_directory_list: list = focus_json['focus_directory_list']
+        if focus_file_list == [] and focus_directory_list == []:
+            hint("your focus is empty")
+            return
+        width = 440
+        height = 500
+        content_window = Tk()
+        content_window.geometry(f'{width}x{height}')
+        content_window.configure(bg="white")
+        content_window.title('focus')
+        canvas = Canvas(content_window, bg='white')
+        myscrollbar=Scrollbar(content_window,orient="vertical",command=canvas.yview)
+        myscrollbar.place(x=width - 15, y=0, height=height)
+        canvas.configure(yscrollcommand=myscrollbar.set)
+        canvas.place(x=0, y=0, width=width, height=height)
+        content_frame = Frame(canvas, bg='white')
+        content_frame.bind("<Configure>",myfunction)
+        canvas.create_window((65, 50), window=content_frame,anchor="nw")
+        frame_title = Label(content_frame, text="all focus", font=('Arial', 18), bg='white')
+        frame_title.grid(row=0, columnspan=2, pady=20)
+        row_number = 1
+        type_label_topline = Label(content_frame, text="type", font=('Arial', 16), bg='white')
+        type_label_topline.grid(row=row_number, column=0, pady=15)
+        path_label_topline = Label(content_frame, text="path", font=('Arial', 16), bg='white')
+        path_label_topline.grid(row=row_number, column=1)
+        for item in focus_file_list:
+            row_number += 1
+            type_of_record = "file"
+            path = item
+            type_label = Label(content_frame, text=type_of_record, bg='white')
+            type_label.grid(row=row_number, column=0)
+            wraplength = 300
+            pos = get_pos(path, wraplength)
+            path_label = Label(content_frame, text=path, width=30, height=3, wraplength=wraplength, anchor=pos, bg='white')
+            path_label.grid(row=row_number, column=1)
+        for item in focus_directory_list:
+            row_number += 1
+            type_of_record = "dir"
+            path = item
+            type_label = Label(content_frame, text=type_of_record, bg='white')
+            type_label.grid(row=row_number, column=0)
+            wraplength = 300
+            pos = get_pos(path, wraplength)
+            path_label = Label(content_frame, text=path, width=30, height=3, wraplength=wraplength, anchor=pos, bg='white')
+            path_label.grid(row=row_number, column=1)
+        content_window.mainloop()
+
 
 
     def fetch():
@@ -303,8 +370,10 @@ def main(robot: Robot):
     renew_history_fetch_button_panel = Frame(root)
     renew_button = Button(renew_history_fetch_button_panel, text='renew', width=10, height=2, command=renew, bg='white')
     renew_button.pack(side="left")
-    history_button = Button(renew_history_fetch_button_panel, text='show all', width=10, height=2, command=show_all_history, bg='white')
+    history_button = Button(renew_history_fetch_button_panel, text='show all change', width=10, height=2, command=show_all_history, bg='white')
     history_button.pack(side="left")
+    focus_button = Button(renew_history_fetch_button_panel, text='show all focus', width=10, height=2, command=show_all_focus, bg='white')
+    focus_button.pack(side="left")
     fetch_button = Button(renew_history_fetch_button_panel, text='fetch', width=10, height=2, command=fetch, bg='white')
     fetch_button.pack(side="left")
     renew_history_fetch_button_panel.pack()
