@@ -70,6 +70,14 @@ class Robot(object):
 
 
     def is_remote_changed(self):
+        history_json = {}
+        history_json["change_list"] = []
+        with open(self._history_file, 'w') as f:
+            json.dump(history_json, f, indent=4)
+        change_json = {}
+        change_json["change_list"] = []
+        with open(self._change_file, 'w') as f:
+            json.dump(change_json, f, indent=4)
         remote_hashnumber = get_remote_head_hashnumber()
         local_hashnumber = get_local_head_hashnumber()
         change_content = os.popen(f"git rev-list --left-right {local_hashnumber}...{remote_hashnumber}").read().splitlines()
