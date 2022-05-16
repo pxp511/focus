@@ -144,7 +144,7 @@ def main(robot: Robot):
             widget.destroy()
         row_number = 0
         type_label_topline = Label(history_display_panel, text="type", font=('Arial', 16), bg='white')
-        type_label_topline.grid(row=row_number, column=0, pady=15)
+        type_label_topline.grid(row=row_number, column=0, pady=15, padx=20)
         path_label_topline = Label(history_display_panel, text="path", font=('Arial', 16), bg='white')
         path_label_topline.grid(row=row_number, column=1)
         time_label_topline = Label(history_display_panel, text="time", font=('Arial', 16), bg='white')
@@ -215,7 +215,7 @@ def main(robot: Robot):
         canvas.place(x=0, y=0, width=width, height=height)
         content_frame = Frame(canvas, bg='white')
         content_frame.bind("<Configure>",myfunction)
-        canvas.create_window((65, 50), window=content_frame,anchor="nw")
+        canvas.create_window((100, 50), window=content_frame,anchor="nw")
         frame_title = Label(content_frame, text="all focus", font=('Arial', 18), bg='white')
         frame_title.grid(row=0, column=4, pady=20)
         row_number = 1
