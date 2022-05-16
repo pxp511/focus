@@ -80,7 +80,6 @@ def main(robot: Robot):
         else:
             warnning("the directory doesn't exist, but added anyway.\n i can't do correction for you, \n so make sure your path is right")
         focus_json["focus_directory_list"].append(directory_path)
-        print(focus_json["focus_directory_list"])
         with open(focus_file, 'w') as f:
             json.dump(focus_json, f, indent=4)
         renew()
