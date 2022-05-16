@@ -147,8 +147,6 @@ def main(robot: Robot):
         type_label_topline.grid(row=row_number, column=0, pady=15)
         path_label_topline = Label(history_display_panel, text="path", font=('Arial', 16), bg='white')
         path_label_topline.grid(row=row_number, column=1)
-        stat_label_topline = Label(history_display_panel, text="status", font=('Arial', 16), bg='white')
-        stat_label_topline.grid(row=row_number, column=2)
         time_label_topline = Label(history_display_panel, text="time", font=('Arial', 16), bg='white')
         time_label_topline.grid(row=row_number, column=3)
         author_label_topline = Label(history_display_panel, text="author", font=('Arial', 16), bg='white')
@@ -164,7 +162,6 @@ def main(robot: Robot):
             if type_of_record == 'directory':
                 type_of_record = 'dir'
             path = record["path"]
-            stat = record["stat"]
             time = record["change"]["time"]
             time = time[time.find(" "): time.rfind(" ")]
             author = record["change"]["author"]
@@ -176,8 +173,6 @@ def main(robot: Robot):
             pos = get_pos(path, wraplength)
             path_label = Label(history_display_panel, text=path, width=30, height=3, wraplength=wraplength, anchor=pos, bg='white')
             path_label.grid(row=row_number, column=1)
-            stat_label = Label(history_display_panel, text=stat, bg='white')
-            stat_label.grid(row=row_number, column=2)
             time_label = Label(history_display_panel, text=time, width=20, bg='white')
             time_label.grid(row=row_number, column=3)
             author_label = Label(history_display_panel, text=author, bg='white')
@@ -228,8 +223,6 @@ def main(robot: Robot):
         type_label_topline.grid(row=row_number, column=0, pady=15)
         path_label_topline = Label(content_frame, text="path", font=('Arial', 16), bg='white')
         path_label_topline.grid(row=row_number, column=1)
-        stat_label_topline = Label(content_frame, text="status", font=('Arial', 16), bg='white')
-        stat_label_topline.grid(row=row_number, column=2)
         time_label_topline = Label(content_frame, text="time", font=('Arial', 16), bg='white')
         time_label_topline.grid(row=row_number, column=3)
         author_label_topline = Label(content_frame, text="author", font=('Arial', 16), bg='white')
@@ -245,7 +238,6 @@ def main(robot: Robot):
             if type_of_record == 'directory':
                 type_of_record = 'dir'
             path = record["path"]
-            stat = record["stat"]
             time = record["change"]["time"]
             time = time[time.find(" "): time.rfind(" ")]
             author = record["change"]["author"]
@@ -257,8 +249,6 @@ def main(robot: Robot):
             pos = get_pos(path, wraplength)
             path_label = Label(content_frame, text=path, width=30, height=3, wraplength=wraplength, anchor=pos, bg='white')
             path_label.grid(row=row_number, column=1)
-            stat_label = Label(content_frame, text=stat, bg='white')
-            stat_label.grid(row=row_number, column=2)
             time_label = Label(content_frame, text=time, width=20, bg='white')
             time_label.grid(row=row_number, column=3)
             author_label = Label(content_frame, text=author, bg='white')

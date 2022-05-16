@@ -120,7 +120,6 @@ class Robot(object):
             last_change_hash = self.get_last_change_hash(merge_base, remote_hashnumber, file)
             record = {}
             record["type"] = "file"
-            record["stat"] = "exist"
             record["path"] = f"{file}"
             record["change"] = {
                 "time": os.popen(f'git log --pretty=format:"%cd" {last_change_hash} -1').read(),
@@ -152,7 +151,6 @@ class Robot(object):
                     if change_dir == focus_directory:
                         directory_change_item = {}
                         directory_change_item["type"] = "directory"
-                        directory_change_item["stat"] = "exist"
                         directory_change_item["path"] = focus_directory
                         directory_change_item["file"] = change["path"]
                         directory_change_item["change"] = {
