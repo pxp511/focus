@@ -157,7 +157,6 @@ class Robot(object):
                             "time": change["change"]["time"],
                             "author": change["change"]["author"],
                             "message": change["change"]["message"],
-                            "detail": ""
                         }
                         focus_change_directory_list.append(directory_change_item)
                         break
