@@ -1,6 +1,8 @@
 import os
 import json
+import pickle
 from time import sleep
+from focus.Ftree import *
 
 
 def fetch_from_origin(debug: bool):
@@ -50,7 +52,7 @@ class Robot(object):
         self._focus_file = f"{focus_dir}/focus.json"
         self._change_file = f"{focus_dir}/change.json"
         self._history_file = f"{focus_dir}/history.json"
-        self._diff_file = f"{focus_dir}/diff"
+        self._tree_obj = f"{focus_dir}/treeobj"
         fetch_from_origin(self._debug)
         if not os.path.isdir(focus_dir):
             os.mkdir(focus_dir)
@@ -95,29 +97,29 @@ class Robot(object):
         else:
             return False
 
-
-    def get_last_change_hash(self, merge_base, remote_hashnumber, file):
-        hash_list = os.popen(f"git rev-list  {merge_base}...{remote_hashnumber}").read().splitlines()
-        hash_list.append(merge_base)
-        for index in range(len(hash_list)):
-            assert index != len(hash_list) - 1
-            curren_hash = hash_list[index]
-            last_hash = hash_list[index + 1]
-            change_content = os.popen(f'git diff  {curren_hash} {last_hash} --name-only').read().splitlines()
-            if file in change_content:
-                return curren_hash
-
-
-    def get_change_list(self) -> list: 
-        # get changed files
+    
+    def get_last_change_dic(self):
         remote_hashnumber = get_remote_head_hashnumber()
         local_hashnumber = get_local_head_hashnumber()
         merge_base = os.popen(f"git merge-base {remote_hashnumber} {local_hashnumber}").read()[:-1]
-        change_content = os.popen(f'git diff  {merge_base} {remote_hashnumber} --name-only').read().splitlines()
+        hash_list = os.popen(f"git rev-list  {merge_base}...{remote_hashnumber}").read().splitlines()
+        hash_list.append(merge_base)
+        last_change_dic = {}
+        for index in range(len(hash_list) - 1):
+            curren_hash = hash_list[index]
+            last_hash = hash_list[index + 1]
+            change_content = os.popen(f'git diff  {curren_hash} {last_hash} --name-only').read().splitlines()
+            for file in change_content:
+                if last_change_dic.get(file, 0) == 0:
+                    last_change_dic[file] = curren_hash
+        return last_change_dic
+
+
+    def last_change_dic_to_change_list(self, dic: dict):
         change_list = []
         yourself = os.popen('git config user.name').read()[:-1]
-        for file in change_content:
-            last_change_hash = self.get_last_change_hash(merge_base, remote_hashnumber, file)
+        for file in dic:
+            last_change_hash = dic[file]
             record = {}
             record["type"] = "file"
             record["path"] = f"{file}"
@@ -126,8 +128,8 @@ class Robot(object):
                 "author": os.popen(f'git log --pretty=format:"%an" {last_change_hash} -1').read(),
                 "message": os.popen(f'git log --pretty=format:"%s" {last_change_hash} -1').read(),
             }
-            if record["change"]["author"] == yourself:
-                continue
+            # if record["change"]["author"] == yourself:
+            #     continue
             change_list.append(record)
         return change_list
 
@@ -202,10 +204,33 @@ class Robot(object):
         self._query_interval = query_interval
     
     def change_parse(self):
-        change_list = self.get_change_list()
+        last_change_dic = self.get_last_change_dic()
+        change_list = self.last_change_dic_to_change_list(last_change_dic)
         focus_change_list = self.get_focus_change_list(change_list)
         self.renew_history(change_list)
         self.renew_change(focus_change_list)
+
+    
+    def ftree_init(self):
+        remote_hashnumber = get_remote_head_hashnumber()
+        local_hashnumber = get_local_head_hashnumber()
+        merge_base = os.popen(f"git merge-base {remote_hashnumber} {local_hashnumber}").read()[:-1]
+        branch_name = os.popen(f"git rev-parse --abbrev-ref HEAD").read()[:-1]
+        sh(f"git checkout {merge_base}")
+        last_tree = get_rep_construct()
+        sh(f"git checkout {remote_hashnumber}")
+        current_tree = get_rep_construct()
+        sh(f"git checkout {branch_name}")
+        new_tree = merge_tree(last_tree, current_tree)
+        last_tree.show()
+        current_tree.show()
+        new_tree.show()
+        new_tree.show(data_property="status")
+        with open(self._tree_obj, 'wb') as f:
+            pickle.dump(new_tree, f)
+        # with open("/Users/pengxiaopeng/treeobj", 'rb') as f:
+        #     a_tree = pickle.load(f)
+
 
     def run(self):
         while True:
