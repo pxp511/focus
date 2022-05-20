@@ -2,10 +2,8 @@ from treelib import Tree, Node
 from queue import Queue
 import os
 import subprocess
-import pickle
 
 
-number = 0
 def sh(command):
     try:
         if isinstance(command, list):
@@ -67,8 +65,7 @@ class Fnode(object):
 # print([i for i in tree.rsearch(4)])  # 向根节点遍历
 # print(tree.size(2))  # 某一层级的节点数
 
-def get_rep_construct():
-    global number
+def get_rep_construct(number: int):
     tree = Tree()
     path = os.getcwd()
     number += 1
@@ -88,11 +85,11 @@ def get_rep_construct():
                     node = tree.create_node(item, number, parent=pnode.identifier, data=Fnode(0))
                     pqueue_temp.put(node)
         pqueue = pqueue_temp
-    return tree
+    return tree, number
 
 
-def merge_tree_entity(tree1: Tree, tree2: Tree):
-    global number
+def merge_tree_entity(tree1: Tree, tree2: Tree, dic: dict):
+    number = dic["number"]
     if tree1 is None:
         tree2.get_node(tree2.root).data = Fnode(1)
         return tree2
@@ -104,6 +101,7 @@ def merge_tree_entity(tree1: Tree, tree2: Tree):
     assert root1.tag == root2.tag
     new_tree = Tree()
     number += 1
+    dic["number"] = number
     new_tree.create_node(root1.tag, number)
     if tree1.depth() == 0 and tree2.depth() == 0:
         new_tree.get_node(new_tree.root).data = Fnode(2)
@@ -119,6 +117,7 @@ def merge_tree_entity(tree1: Tree, tree2: Tree):
         node1: Node = children1[index1]
         node2: Node = children2[index2]
         number += 1
+        dic["number"] = number
         if node1.tag == node2.tag:
             node_list.append(Node(node1.tag, number, data=Fnode(2, id1 = node1.identifier, id2 = node2.identifier)))
             index1 += 1
@@ -132,11 +131,13 @@ def merge_tree_entity(tree1: Tree, tree2: Tree):
     while index1 < length1:
         node1: Node = children1[index1]
         number += 1
+        dic["number"] = number
         node_list.append(Node(node1.tag, number, data=Fnode(-1, id1 = node1.identifier)))
         index1 += 1
     while index2 < length2:
         node2: Node = children2[index2]
         number += 1
+        dic["number"] = number
         node_list.append(Node(node2.tag, number, data=Fnode(1, id2 = node2.identifier)))
         index2 += 1
     for node in node_list:
@@ -149,19 +150,14 @@ def merge_tree_entity(tree1: Tree, tree2: Tree):
         elif node.data.status == 2:
             subtree1 = tree1.subtree(node.data.id1)
             subtree2 = tree2.subtree(node.data.id2)
-            subtree = merge_tree_entity(subtree1, subtree2)
+            subtree = merge_tree_entity(subtree1, subtree2, dic)
             subtree.get_node(subtree.root).data = Fnode(2)
         new_tree.paste(new_tree.root, subtree)
     return new_tree
 
 
-def merge_tree(tree1: Tree, tree2: Tree):
-    new_tree = merge_tree_entity(tree1, tree2)
+def merge_tree(tree1: Tree, tree2: Tree, number: int):
+    dic = {"number": number}
+    new_tree = merge_tree_entity(tree1, tree2, dic)
     new_tree.get_node(new_tree.root).data = Fnode(2)
-    return new_tree
-
-# with open("/Users/pengxiaopeng/treeobj", 'wb') as f:
-#     pickle.dump(new_tree, f)
-# with open("/Users/pengxiaopeng/treeobj", 'rb') as f:
-#     a_tree = pickle.load(f)
-# print(a_tree)
+    return new_tree, dic["number"]

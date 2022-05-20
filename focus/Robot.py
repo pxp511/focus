@@ -9,7 +9,7 @@ def fetch_from_origin(debug: bool):
     try:
         print("Fetching new changes from origin......")
         if not debug:
-            os.system(f"git fetch")
+            sh(f"git fetch")
         print("Done fetching, you don't need to fetch anymore")
     except Exception as e:
         print(e)
@@ -53,6 +53,10 @@ class Robot(object):
         self._change_file = f"{focus_dir}/change.json"
         self._history_file = f"{focus_dir}/history.json"
         self._tree_obj = f"{focus_dir}/treeobj"
+        self._hash_file = f"{focus_dir}/hash"
+        self._number_file = f"{focus_dir}/number"
+        self._tree = None
+        self._hash = ''
         fetch_from_origin(self._debug)
         if not os.path.isdir(focus_dir):
             os.mkdir(focus_dir)
@@ -61,6 +65,17 @@ class Robot(object):
             focus_json["focus_directory_list"] = []
             with open(self._focus_file, 'w') as f:
                 json.dump(focus_json, f, indent=4)
+            self.dump_number(0)
+            hash_number = get_remote_head_hashnumber()
+            with open(self._hash_file, 'w') as f:
+                f.write(hash_number)
+            self._hash = hash_number
+            self.ftree_init()
+        else:
+            with open(self._tree_obj, 'rb') as f:
+                self._tree = pickle.load(f)
+            with open(self._hash_file, 'r') as f:
+                self._hash = f.readline()
         history_json = {}
         history_json["change_list"] = []
         with open(self._history_file, 'w') as f:
@@ -72,6 +87,9 @@ class Robot(object):
 
 
     def is_remote_changed(self):
+        if self.tree_need_change():
+            self.tree_update()
+            print(self._tree)
         history_json = {}
         history_json["change_list"] = []
         with open(self._history_file, 'w') as f:
@@ -98,6 +116,25 @@ class Robot(object):
             return False
 
     
+    def tree_need_change(self):
+        hash_number = get_remote_head_hashnumber()
+        return self._hash != hash_number
+
+
+    def tree_update(self):
+        remote_hashnumber = get_remote_head_hashnumber()
+        branch_name = os.popen(f"git rev-parse --abbrev-ref HEAD").read()[:-1]
+        number = self.load_number()
+        sh(f"git checkout {remote_hashnumber}")
+        current_tree, number = get_rep_construct(number)
+        sh(f"git checkout {branch_name}")
+        ftree, number = merge_tree(self._tree, current_tree, number)
+        self.dump_number(number)
+        self._tree = ftree
+        with open(self._hash_file, 'w') as f:
+            f.write(remote_hashnumber)
+
+
     def get_last_change_dic(self):
         remote_hashnumber = get_remote_head_hashnumber()
         local_hashnumber = get_local_head_hashnumber()
@@ -217,19 +254,36 @@ class Robot(object):
         merge_base = os.popen(f"git merge-base {remote_hashnumber} {local_hashnumber}").read()[:-1]
         branch_name = os.popen(f"git rev-parse --abbrev-ref HEAD").read()[:-1]
         sh(f"git checkout {merge_base}")
-        last_tree = get_rep_construct()
+        number = self.load_number()
+        last_tree, number = get_rep_construct(number)
         sh(f"git checkout {remote_hashnumber}")
-        current_tree = get_rep_construct()
+        current_tree, number = get_rep_construct(number)
         sh(f"git checkout {branch_name}")
-        new_tree = merge_tree(last_tree, current_tree)
-        last_tree.show()
-        current_tree.show()
-        new_tree.show()
-        new_tree.show(data_property="status")
+        ftree, number = merge_tree(last_tree, current_tree, number)
+        self.dump_number(number)
+        self._tree = ftree
+    
+    
+    def tree_dump(self):
         with open(self._tree_obj, 'wb') as f:
-            pickle.dump(new_tree, f)
-        # with open("/Users/pengxiaopeng/treeobj", 'rb') as f:
-        #     a_tree = pickle.load(f)
+            pickle.dump(self._tree, f)
+    
+    
+    def tree_load(self):
+        with open(self._tree_obj, 'rb') as f:
+            tree = pickle.load(f)
+        return tree
+
+
+    def load_number(self):
+        with open(self._number_file, 'r') as f:
+            number = f.readline()
+        return int(number)
+
+
+    def dump_number(self, number):
+        with open(self._number_file, 'w') as f:
+            f.write(str(number))
 
 
     def run(self):

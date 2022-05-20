@@ -33,7 +33,6 @@ def get_pos(chars: str, wraplength: int):
     return pos
 
 def main(robot: Robot):
-    robot.ftree_init()
     repository = robot._repository
     focus_dir = f"{repository}/.git/.focus"
     global focus_file
