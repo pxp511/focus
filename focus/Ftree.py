@@ -161,3 +161,21 @@ def merge_tree(tree1: Tree, tree2: Tree, number: int):
     new_tree = merge_tree_entity(tree1, tree2, dic)
     new_tree.get_node(new_tree.root).data = Fnode(2)
     return new_tree, dic["number"]
+
+
+def adjust_tree_path(tree: Tree):
+    root: Node = tree.get_node(tree.root)
+    pqueue = Queue()
+    pqueue.put(root)
+    while not pqueue.empty():
+        pqueue_temp = Queue()
+        while not pqueue.empty():
+            pnode: Node = pqueue.get()
+            dirpath = pnode.data.path
+            children = tree.children(pnode.identifier)
+            for node in children:
+                path = os.path.join(dirpath, node.tag)
+                node.data.path = path
+                pqueue_temp.put(node)
+        pqueue = pqueue_temp
+    return tree

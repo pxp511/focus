@@ -55,7 +55,7 @@ class Robot(object):
         self._tree_obj = f"{focus_dir}/treeobj"
         self._hash_file = f"{focus_dir}/hash"
         self._number_file = f"{focus_dir}/number"
-        self._tree = None
+        self._tree: Tree = None
         self._hash = ''
         fetch_from_origin(self._debug)
         if not os.path.isdir(focus_dir):

@@ -44,6 +44,7 @@ def main(robot: Robot):
     
     
     def add_focus_file():
+        print(robot._tree.leaves())
         file_path = file_message_entry.get()
         if file_path == "":
             hint("file path input is empty")
@@ -61,6 +62,7 @@ def main(robot: Robot):
         focus_json["focus_file_list"].append(file_path)
         with open(focus_file, 'w') as f:
             json.dump(focus_json, f, indent=4)
+        
         renew()
 
 
