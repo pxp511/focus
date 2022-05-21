@@ -202,8 +202,8 @@ def main(robot: Robot):
 
 
     def renew():
-        if robot.is_remote_changed():
-            robot.change_parse()
+        if robot.is_remote_changed() and robot.tree_need_change():
+            robot.init()
         # if os.path.isfile(change_file):
         #     with open(change_file, 'r') as f:
         #         history_json = json.load(f)

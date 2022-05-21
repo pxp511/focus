@@ -31,10 +31,11 @@ def get_remote_head_hashnumber() -> str:
         upstream = '{upstream}'
         remote_name = os.popen(f"git rev-parse --abbrev-ref {branch_name}@{upstream}").read()[:-1]
         hashnumber = os.popen(f"git rev-parse {remote_name}").read()[:-1]
+        merge_base = os.popen(f"git merge-base {branch_name} {remote_name}").read()[:-1]
     except Exception as e:
         print(e)
         exit()
-    return hashnumber
+    return hashnumber, merge_base
 
 
 class Robot(object):
@@ -54,42 +55,46 @@ class Robot(object):
         self._history_file = f"{focus_dir}/history.json"
         self._tree_obj = f"{focus_dir}/treeobj"
         self._hash_file = f"{focus_dir}/hash"
+        self._merge_base_file = f"{focus_dir}/merge_base"
         self._number_file = f"{focus_dir}/number"
         self._tree: Tree = None
         self._hash = ''
+        self._merge_base = ''
         self._change_list = []
+        self._change_list_obj = f"{focus_dir}/change_list_obj"
         fetch_from_origin(self._debug)
         if not os.path.isdir(focus_dir):
+            # os.mkdir(focus_dir)
+            # focus_json = {}
+            # focus_json["focus_file_list"] = []
+            # focus_json["focus_directory_list"] = []
+            # with open(self._focus_file, 'w') as f:
+            #     json.dump(focus_json, f, indent=4)
             os.mkdir(focus_dir)
-            focus_json = {}
-            focus_json["focus_file_list"] = []
-            focus_json["focus_directory_list"] = []
-            with open(self._focus_file, 'w') as f:
-                json.dump(focus_json, f, indent=4)
             self.dump_number(0)
-            hash_number = get_remote_head_hashnumber()
-            with open(self._hash_file, 'w') as f:
-                f.write(hash_number)
-            self._hash = hash_number
-            self.ftree_init()
+            self.init()
         else:
             with open(self._tree_obj, 'rb') as f:
                 self._tree = pickle.load(f)
+            with open(self._change_list_obj, 'rb') as f:
+                self._change_list = pickle.load(f)
             with open(self._hash_file, 'r') as f:
                 self._hash = f.readline()
-        history_json = {}
-        history_json["change_list"] = []
-        with open(self._history_file, 'w') as f:
-            json.dump(history_json, f, indent=4)
-        change_json = {}
-        change_json["change_list"] = []
-        with open(self._change_file, 'w') as f:
-            json.dump(change_json, f, indent=4)
+            with open(self._merge_base_file, 'r') as f:
+                self._merge_base = f.readline()
+        # history_json = {}
+        # history_json["change_list"] = []
+        # with open(self._history_file, 'w') as f:
+        #     json.dump(history_json, f, indent=4)
+        # change_json = {}
+        # change_json["change_list"] = []
+        # with open(self._change_file, 'w') as f:
+        #     json.dump(change_json, f, indent=4)
 
 
     def is_remote_changed(self):
-        if self.tree_need_change():
-            self.tree_update()
+        # if self.tree_need_change():
+        #     self.tree_update()
         history_json = {}
         history_json["change_list"] = []
         with open(self._history_file, 'w') as f:
@@ -98,7 +103,7 @@ class Robot(object):
         change_json["change_list"] = []
         with open(self._change_file, 'w') as f:
             json.dump(change_json, f, indent=4)
-        remote_hashnumber = get_remote_head_hashnumber()
+        remote_hashnumber, _ = get_remote_head_hashnumber()
         local_hashnumber = get_local_head_hashnumber()
         change_content = os.popen(f"git rev-list --left-right {local_hashnumber}...{remote_hashnumber}").read().splitlines()
         left = 0
@@ -117,12 +122,12 @@ class Robot(object):
 
     
     def tree_need_change(self):
-        hash_number = get_remote_head_hashnumber()
-        return self._hash != hash_number
+        hash_number, merge_base = get_remote_head_hashnumber()
+        return self._hash != hash_number or self._merge_base != merge_base
 
 
     def tree_update(self):
-        remote_hashnumber = get_remote_head_hashnumber()
+        remote_hashnumber, _ = get_remote_head_hashnumber()
         branch_name = os.popen(f"git rev-parse --abbrev-ref HEAD").read()[:-1]
         number = self.load_number()
         sh(f"git checkout {remote_hashnumber}")
@@ -138,9 +143,8 @@ class Robot(object):
 
 
     def get_last_change_dic(self):
-        remote_hashnumber = get_remote_head_hashnumber()
+        remote_hashnumber, merge_base = get_remote_head_hashnumber()
         local_hashnumber = get_local_head_hashnumber()
-        merge_base = os.popen(f"git merge-base {remote_hashnumber} {local_hashnumber}").read()[:-1]
         hash_list = os.popen(f"git rev-list  {merge_base}...{remote_hashnumber}").read().splitlines()
         hash_list.append(merge_base)
         last_change_dic = {}
@@ -158,7 +162,8 @@ class Robot(object):
         return sorted_dic
 
 
-    def last_change_dic_to_change_list(self, dic: dict):
+    def last_change_dic_to_change_list(self):
+        dic = self.get_last_change_dic()
         change_list = []
         yourself = os.popen('git config user.name').read()[:-1]
         for file in dic:
@@ -180,13 +185,12 @@ class Robot(object):
         return change_list
 
 
-    def record_leaf_to_root(self, record, node: Node):
+    def record_leaf_to_root(self, record, node: Node, tree: Tree):
         node.data.type = "file"
         node.data.time = record["change"]["time"]
         node.data.author = record["change"]["author"]
         node.data.message = record["change"]["message"]
         node.data.is_changed = True
-        tree = self._tree
         root = tree.get_node(tree.root)
         dire = tree.parent(node.identifier)
         while dire != root:
@@ -198,7 +202,7 @@ class Robot(object):
             if node.data.path not in dire.data.file:
                 dire.data.file.append(node.data.path)
             dire.data.is_changed = True
-            dire = self._tree.parent(dire.identifier)
+            dire = tree.parent(dire.identifier)
             
     
     def get_records_from_leaf(self, node: Node):
@@ -222,8 +226,8 @@ class Robot(object):
         return records
 
 
-    def adjust_change_list_to_tree(self, change_list: list):
-        children = self._tree.leaves()
+    def adjust_change_list_to_tree(self, change_list: list, tree: Tree):
+        children = tree.leaves()
         lengthl = len(change_list)
         indexl = 0
         indext = 0
@@ -235,71 +239,71 @@ class Robot(object):
             if patht == pathl:
                 indexl += 1
                 indext += 1
-                self.record_leaf_to_root(record, node)
+                self.record_leaf_to_root(record, node, tree)
             elif pathl > patht:
                 indext += 1
             elif pathl < patht:
                 print("error: adjust_change_list_to_tree")
         
-    def get_focus_change_file_list(self, change_list, focus_file_list):
-        focus_change_file_list = []
-        for change in change_list:
-            for focus_file in focus_file_list:
-                if change["path"] == focus_file:
-                    focus_change_file_list.append(change)
-                    break
-        return focus_change_file_list
+    # def get_focus_change_file_list(self, change_list, focus_file_list):
+    #     focus_change_file_list = []
+    #     for change in change_list:
+    #         for focus_file in focus_file_list:
+    #             if change["path"] == focus_file:
+    #                 focus_change_file_list.append(change)
+    #                 break
+    #     return focus_change_file_list
 
 
-    def get_focus_change_directory_list(self, change_list, focus_directory_list):
-        focus_change_directory_list = []
-        for change in change_list:
-            change_dir = os.path.dirname(change["path"])
-            while change_dir != "":
-                for focus_directory in focus_directory_list:
-                    if change_dir == focus_directory:
-                        directory_change_item = {}
-                        directory_change_item["type"] = "directory"
-                        directory_change_item["path"] = focus_directory
-                        directory_change_item["file"] = change["path"]
-                        directory_change_item["change"] = {
-                            "time": change["change"]["time"],
-                            "author": change["change"]["author"],
-                            "message": change["change"]["message"],
-                        }
-                        focus_change_directory_list.append(directory_change_item)
-                        break
-                change_dir = os.path.dirname(change_dir)
-        return focus_change_directory_list
+    # def get_focus_change_directory_list(self, change_list, focus_directory_list):
+    #     focus_change_directory_list = []
+    #     for change in change_list:
+    #         change_dir = os.path.dirname(change["path"])
+    #         while change_dir != "":
+    #             for focus_directory in focus_directory_list:
+    #                 if change_dir == focus_directory:
+    #                     directory_change_item = {}
+    #                     directory_change_item["type"] = "directory"
+    #                     directory_change_item["path"] = focus_directory
+    #                     directory_change_item["file"] = change["path"]
+    #                     directory_change_item["change"] = {
+    #                         "time": change["change"]["time"],
+    #                         "author": change["change"]["author"],
+    #                         "message": change["change"]["message"],
+    #                     }
+    #                     focus_change_directory_list.append(directory_change_item)
+    #                     break
+    #             change_dir = os.path.dirname(change_dir)
+    #     return focus_change_directory_list
 
 
-    def get_focus_change_list(self, change_list: list) -> list:
-        # change files to focus files and directories
-        fucos_file = self._focus_file
-        focus = {}
-        if os.path.isfile(fucos_file):
-            with open(fucos_file, 'r') as f:
-                focus = json.load(f)
-        focus_file_list = focus["focus_file_list"]
-        focus_directory_list = focus["focus_directory_list"]
-        focus_change_list = []
-        focus_change_list += self.get_focus_change_file_list(change_list, focus_file_list)
-        focus_change_list += self.get_focus_change_directory_list(change_list, focus_directory_list)
-        return focus_change_list
+    # def get_focus_change_list(self, change_list: list) -> list:
+    #     # change files to focus files and directories
+    #     fucos_file = self._focus_file
+    #     focus = {}
+    #     if os.path.isfile(fucos_file):
+    #         with open(fucos_file, 'r') as f:
+    #             focus = json.load(f)
+    #     focus_file_list = focus["focus_file_list"]
+    #     focus_directory_list = focus["focus_directory_list"]
+    #     focus_change_list = []
+    #     focus_change_list += self.get_focus_change_file_list(change_list, focus_file_list)
+    #     focus_change_list += self.get_focus_change_directory_list(change_list, focus_directory_list)
+    #     return focus_change_list
 
 
-    def renew_change(self, focus_change_list: list):
-        change_json = {}
-        change_json["change_list"] = focus_change_list
-        with open(self._change_file, 'w') as f:
-            json.dump(change_json, f, indent=4)
+    # def renew_change(self, focus_change_list: list):
+    #     change_json = {}
+    #     change_json["change_list"] = focus_change_list
+    #     with open(self._change_file, 'w') as f:
+    #         json.dump(change_json, f, indent=4)
 
 
-    def renew_history(self, change_list: list):
-        history_json = {}
-        history_json["change_list"] = change_list
-        with open(self._history_file, 'w') as f:
-            json.dump(history_json, f, indent=4)
+    # def renew_history(self, change_list: list):
+    #     history_json = {}
+    #     history_json["change_list"] = change_list
+    #     with open(self._history_file, 'w') as f:
+    #         json.dump(history_json, f, indent=4)
 
 
     def get_show_list(self):
@@ -369,26 +373,42 @@ class Robot(object):
         self._change_list = change_list
         self.adjust_change_list_to_tree(change_list)
         self.tree_dump()
-        focus_change_list = self.get_focus_change_list(change_list)
-        self.renew_history(change_list)
-        self.renew_change(focus_change_list)
+        hash_number, merge_base = get_remote_head_hashnumber()
+        with open(self._hash_file, 'w') as f:
+            f.write(hash_number)
+        self._hash = hash_number
+        with open(self._merge_base_file, 'w') as f:
+            f.write(merge_base)
+        self._merge_base = merge_base
+        # focus_change_list = self.get_focus_change_list(change_list)
+        # self.renew_history(change_list)
+        # self.renew_change(focus_change_list)
         
 
     
-    def ftree_init(self):
-        remote_hashnumber = get_remote_head_hashnumber()
-        local_hashnumber = get_local_head_hashnumber()
-        merge_base = os.popen(f"git merge-base {remote_hashnumber} {local_hashnumber}").read()[:-1]
+    def init(self):
+        hash_number, merge_base = get_remote_head_hashnumber()
+        with open(self._hash_file, 'w') as f:
+            f.write(hash_number)
+        self._hash = hash_number
+        with open(self._merge_base_file, 'w') as f:
+            f.write(merge_base)
+        self._merge_base = merge_base
         branch_name = os.popen(f"git rev-parse --abbrev-ref HEAD").read()[:-1]
         sh(f"git checkout {merge_base}")
         number = self.load_number()
         last_tree, number = get_rep_construct(number)
-        sh(f"git checkout {remote_hashnumber}")
+        sh(f"git checkout {hash_number}")
         current_tree, number = get_rep_construct(number)
         sh(f"git checkout {branch_name}")
         ftree, number = merge_tree(last_tree, current_tree, number)
-        adjust_tree_path(ftree)
         self.dump_number(number)
+        adjust_tree_path(ftree)
+        change_list = self.last_change_dic_to_change_list()
+        with open(self._change_list_obj, 'wb') as f:
+            pickle.dump(change_list, f)
+        self._change_list = change_list
+        self.adjust_change_list_to_tree(change_list, ftree)
         self._tree = ftree
         self.tree_dump()
     
@@ -416,9 +436,14 @@ class Robot(object):
 
 
     def run(self):
+        self._tree.show()
+        self._tree.show(data_property="is_focused")
+        self._tree.show(data_property="path")
+        self._tree.show(data_property="file")
+        self._tree.show(data_property="author")
         while True:
             sleep(self.query_interval)
             fetch_from_origin(self._debug)
-            if self.is_remote_changed():
-                self.change_parse()
+            if self.is_remote_changed() and self.tree_need_change():
+                self.init()
         # check if the remote repository has changed by query_interval
