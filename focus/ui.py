@@ -42,19 +42,54 @@ def main(robot: Robot):
     history_count = 5
     length = '1350'
     height = '670'
+    type_column = 1
+    path_column = 0
+    time_column = 5
+    author_column = 4
+    status_column = 3
+    message_column = 6
+    file_column = 7
     
     
+    def path_to_list(path):
+        l = []
+        dname = os.path.dirname(path)
+        bname = os.path.basename(path)
+        n = 0
+        while dname != "":
+            l.append(os.path.basename(dname))
+            dname = os.path.dirname(dname)
+        l.reverse()
+        l.append(bname)
+        return l
+
+
+    def find_node(file_path):
+        is_find = True
+        path_list = path_to_list(file_path)
+        tree = robot._tree
+        node = tree.get_node(tree.root)
+        for path in path_list:
+            children = tree.children(node.identifier)
+            is_exist = False
+            for child in children:
+                if child.tag == path:
+                    node = child
+                    is_exist = True
+                    break
+            if not is_exist:
+                is_find = False
+        return node, is_find
+
+
     def add_focus_file():
         file_path = file_message_entry.get()
-        is_find = False
-        for node in robot._tree.all_nodes():
-            if node.data.path == file_path:
-                node.data.is_focused = True
-                is_find  = True
-                hint("find")
-                robot.tree_dump()
-                break
-        if is_find == False:
+        node, is_find = find_node(file_path)
+        if is_find:
+            node.data.is_focused = True
+            hint("find")
+            robot.tree_dump()
+        else:
             hint("not find")
         # if file_path == "":
         #     hint("file path input is empty")
@@ -109,15 +144,12 @@ def main(robot: Robot):
 
     def delete_focus_file():
         file_path = file_message_entry.get()
-        is_find = False
-        for node in robot._tree.all_nodes():
-            if node.data.path == file_path:
-                node.data.is_focused = False
-                is_find  = True
-                hint("find")
-                robot.tree_dump()
-                break
-        if is_find == False:
+        node, is_find = find_node(file_path)
+        if is_find:
+            node.data.is_focused = False
+            hint("find")
+            robot.tree_dump()
+        else:
             hint("not find")
         # if file_path == "":
         #     hint("file path input is empty")
@@ -187,19 +219,19 @@ def main(robot: Robot):
             widget.destroy()
         row_number = 0
         type_label_topline = Label(history_display_panel, text="type", font=('Arial', 16), bg='white')
-        type_label_topline.grid(row=row_number, column=0, pady=15, padx=20)
+        type_label_topline.grid(row=row_number, column=type_column, pady=15, padx=20)
         path_label_topline = Label(history_display_panel, text="path", font=('Arial', 16), bg='white')
-        path_label_topline.grid(row=row_number, column=1)
+        path_label_topline.grid(row=row_number, column=path_column)
         time_label_topline = Label(history_display_panel, text="time", font=('Arial', 16), bg='white')
-        time_label_topline.grid(row=row_number, column=3)
+        time_label_topline.grid(row=row_number, column=time_column)
         author_label_topline = Label(history_display_panel, text="author", font=('Arial', 16), bg='white')
-        author_label_topline.grid(row=row_number, column=4, padx=20)
+        author_label_topline.grid(row=row_number, column=author_column, padx=20)
         status_label_topline = Label(history_display_panel, text="status", font=('Arial', 16), bg='white')
-        status_label_topline.grid(row=row_number, column=5, padx=20)
+        status_label_topline.grid(row=row_number, column=status_column, padx=20)
         message_label_topline = Label(history_display_panel, text="message", font=('Arial', 16), bg='white')
-        message_label_topline.grid(row=row_number, column=6)
+        message_label_topline.grid(row=row_number, column=message_column)
         file_label_topline = Label(history_display_panel, text="file", font=('Arial', 16), bg='white')
-        file_label_topline.grid(row=row_number, column=7)
+        file_label_topline.grid(row=row_number, column=file_column)
         for index in range(count_of_history_for_show):
             row_number += 1
             record: dict = change_list[index]
@@ -216,25 +248,22 @@ def main(robot: Robot):
             author = record["change"]["author"]
             message = record["change"]["message"]
             type_label = Label(history_display_panel, text=type_of_record, bg='white')
-            type_label.grid(row=row_number, column=0)
+            type_label.grid(row=row_number, column=type_column)
             wraplength = 300
-            pos = get_pos(path, wraplength)
-            path_label = Label(history_display_panel, text=path, width=30, height=3, wraplength=wraplength, anchor=pos, bg='white')
-            path_label.grid(row=row_number, column=1)
+            path_label = Label(history_display_panel, text=path, width=30, height=3, wraplength=wraplength, anchor="center", bg='white')
+            path_label.grid(row=row_number, column=path_column)
             time_label = Label(history_display_panel, text=time, width=20, bg='white')
-            time_label.grid(row=row_number, column=3)
+            time_label.grid(row=row_number, column=time_column)
             author_label = Label(history_display_panel, text=author, bg='white')
-            author_label.grid(row=row_number, column=4)
+            author_label.grid(row=row_number, column=author_column)
             status_label = Label(history_display_panel, text=status, bg='white')
-            status_label.grid(row=row_number, column=5)
+            status_label.grid(row=row_number, column=status_column)
             wraplength = 300
-            pos = get_pos(message, wraplength)
-            message_label = Label(history_display_panel, text=message, width=30, height=3, wraplength=wraplength, anchor=pos, bg='white')
-            message_label.grid(row=row_number, column=6)
+            message_label = Label(history_display_panel, text=message, width=30, height=3, wraplength=wraplength, anchor="center", bg='white')
+            message_label.grid(row=row_number, column=message_column)
             wraplength = 300
-            pos = get_pos(file_content, wraplength)
-            file_label = Label(history_display_panel, text=file_content, width=30, height=3, wraplength=wraplength, anchor=pos, bg='white')
-            file_label.grid(row=row_number, column=7)
+            file_label = Label(history_display_panel, text=file_content, width=30, height=3, wraplength=wraplength, anchor="center", bg='white')
+            file_label.grid(row=row_number, column=file_column)
         row_number += 1
         if ellipsis != '':
             ellipsis_label = Label(history_display_panel, text=ellipsis, font=('Arial', 25), bg='white')
@@ -267,23 +296,23 @@ def main(robot: Robot):
         content_frame = Frame(canvas, bg='white')
         content_frame.bind("<Configure>",myfunction)
         canvas.create_window((100, 50), window=content_frame,anchor="nw")
-        frame_title = Label(content_frame, text="all focus", font=('Arial', 18), bg='white')
-        frame_title.grid(row=0, column=4, pady=20)
-        row_number = 1
+        # frame_title = Label(content_frame, text="all focus", font=('Arial', 18), bg='white')
+        # frame_title.grid(row=0, column=4, pady=20)
+        row_number = 0
         type_label_topline = Label(content_frame, text="type", font=('Arial', 16), bg='white')
-        type_label_topline.grid(row=row_number, column=0, pady=15)
+        type_label_topline.grid(row=row_number, column=type_column, pady=15, padx=10)
         path_label_topline = Label(content_frame, text="path", font=('Arial', 16), bg='white')
-        path_label_topline.grid(row=row_number, column=1)
+        path_label_topline.grid(row=row_number, column=path_column)
         time_label_topline = Label(content_frame, text="time", font=('Arial', 16), bg='white')
-        time_label_topline.grid(row=row_number, column=3)
+        time_label_topline.grid(row=row_number, column=time_column)
         author_label_topline = Label(content_frame, text="author", font=('Arial', 16), bg='white')
-        author_label_topline.grid(row=row_number, column=4)
+        author_label_topline.grid(row=row_number, column=author_column, padx=5)
         status_label_topline = Label(content_frame, text="status", font=('Arial', 16), bg='white')
-        status_label_topline.grid(row=row_number, column=5)
+        status_label_topline.grid(row=row_number, column=status_column, padx=10)
         message_label_topline = Label(content_frame, text="message", font=('Arial', 16), bg='white')
-        message_label_topline.grid(row=row_number, column=6)
+        message_label_topline.grid(row=row_number, column=message_column)
         file_label_topline = Label(content_frame, text="file", font=('Arial', 16), bg='white')
-        file_label_topline.grid(row=row_number, column=7)
+        file_label_topline.grid(row=row_number, column=file_column)
         for index in range(len(change_list)):
             row_number += 1
             record: dict = change_list[index]
@@ -300,25 +329,22 @@ def main(robot: Robot):
             for file in files:
                 file_content += file + '\n'
             type_label = Label(content_frame, text=type_of_record, bg='white')
-            type_label.grid(row=row_number, column=0)
+            type_label.grid(row=row_number, column=type_column)
             wraplength = 300
-            pos = get_pos(path, wraplength)
-            path_label = Label(content_frame, text=path, width=30, height=3, wraplength=wraplength, anchor=pos, bg='white')
-            path_label.grid(row=row_number, column=1)
+            path_label = Label(content_frame, text=path, width=30, height=3, wraplength=wraplength, anchor="center", bg='white')
+            path_label.grid(row=row_number, column=path_column)
             time_label = Label(content_frame, text=time, width=20, bg='white')
-            time_label.grid(row=row_number, column=3)
+            time_label.grid(row=row_number, column=time_column)
             author_label = Label(content_frame, text=author, bg='white')
-            author_label.grid(row=row_number, column=4)
+            author_label.grid(row=row_number, column=author_column)
             status_label = Label(content_frame, text=status, bg='white')
-            status_label.grid(row=row_number, column=5, padx=10)
+            status_label.grid(row=row_number, column=status_column, padx=10)
             wraplength = 300
-            pos = get_pos(message, wraplength)
-            message_label = Label(content_frame, text=message, width=30, height=3, wraplength=wraplength, anchor=pos, bg='white')
-            message_label.grid(row=row_number, column=6)
+            message_label = Label(content_frame, text=message, width=30, height=3, wraplength=wraplength, anchor="center", bg='white')
+            message_label.grid(row=row_number, column=message_column)
             wraplength = 300
-            pos = get_pos(file, wraplength)
-            file_label = Label(content_frame, text=file_content, width=30, height=3, wraplength=wraplength, anchor=pos, bg='white')
-            file_label.grid(row=row_number, column=7)
+            file_label = Label(content_frame, text=file_content, width=30, height=3, wraplength=wraplength, anchor="center", bg='white')
+            file_label.grid(row=row_number, column=file_column)
         content_window.mainloop()
 
 
@@ -362,8 +388,7 @@ def main(robot: Robot):
             type_label = Label(content_frame, text=type_of_record, bg='white')
             type_label.grid(row=row_number, column=0)
             wraplength = 300
-            pos = get_pos(path, wraplength)
-            path_label = Label(content_frame, text=path, width=30, height=3, wraplength=wraplength, anchor=pos, bg='white')
+            path_label = Label(content_frame, text=path, width=30, height=3, wraplength=wraplength, anchor="center", bg='white')
             path_label.grid(row=row_number, column=1)
         for item in focus_directory_list:
             row_number += 1
@@ -372,8 +397,7 @@ def main(robot: Robot):
             type_label = Label(content_frame, text=type_of_record, bg='white')
             type_label.grid(row=row_number, column=0)
             wraplength = 300
-            pos = get_pos(path, wraplength)
-            path_label = Label(content_frame, text=path, width=30, height=3, wraplength=wraplength, anchor=pos, bg='white')
+            path_label = Label(content_frame, text=path, width=30, height=3, wraplength=wraplength, anchor="center", bg='white')
             path_label.grid(row=row_number, column=1)
         content_window.mainloop()
 
