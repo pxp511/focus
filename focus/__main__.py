@@ -65,7 +65,6 @@ def main():
     while True:
         sleep(1)
         if not p1.is_alive():
-            robot.tree_dump()
             p2.terminate()
             break
         

@@ -24,11 +24,12 @@ class Fnode(object):
         type = '',
         path = '',
         time = '',
+        fstatus = '',
         author = '',
         message = '',
         file = '',
         is_changed = False,
-        is_focued = False
+        is_focused = False
         ):
         self.status = status
         self.id1 = id1
@@ -36,11 +37,12 @@ class Fnode(object):
         self.type = type
         self.path = path
         self.time = time
+        self.fstatus = fstatus
         self.author = author
         self.message = message
         self.file = file
-        self.is_det = is_changed
-        self.is_focued = is_focued
+        self.is_changed = is_changed
+        self.is_focused = is_focused
         # 0: 未合并
         # 2: 合后并均存在
         # -1: 被删除
@@ -172,10 +174,29 @@ def adjust_tree_path(tree: Tree):
         while not pqueue.empty():
             pnode: Node = pqueue.get()
             dirpath = pnode.data.path
+            pstatus = pnode.data.status
+            cstatus = None
+            if pstatus == 1:
+                cstatus = 1
+            elif pstatus == -1:
+                cstatus = -1
             children = tree.children(pnode.identifier)
             for node in children:
                 path = os.path.join(dirpath, node.tag)
                 node.data.path = path
+                if cstatus != None:
+                    node.data.status = cstatus
+                status = node.data.status
+                if status == 0:
+                    node.data.fstatus = 'need merge'
+                elif status == 1:
+                    node.data.fstatus = 'new'
+                elif status == 2:
+                    node.data.fstatus = 'exist'
+                elif status == -1:
+                    node.data.fstatus = 'deleted'
+                else:
+                    print("error: adjust tree")
                 pqueue_temp.put(node)
         pqueue = pqueue_temp
     return tree

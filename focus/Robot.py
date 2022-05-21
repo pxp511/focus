@@ -57,6 +57,7 @@ class Robot(object):
         self._number_file = f"{focus_dir}/number"
         self._tree: Tree = None
         self._hash = ''
+        self._change_list = []
         fetch_from_origin(self._debug)
         if not os.path.isdir(focus_dir):
             os.mkdir(focus_dir)
@@ -89,7 +90,6 @@ class Robot(object):
     def is_remote_changed(self):
         if self.tree_need_change():
             self.tree_update()
-            print(self._tree)
         history_json = {}
         history_json["change_list"] = []
         with open(self._history_file, 'w') as f:
@@ -129,10 +129,12 @@ class Robot(object):
         current_tree, number = get_rep_construct(number)
         sh(f"git checkout {branch_name}")
         ftree, number = merge_tree(self._tree, current_tree, number)
+        adjust_tree_path(ftree)
         self.dump_number(number)
         self._tree = ftree
         with open(self._hash_file, 'w') as f:
             f.write(remote_hashnumber)
+        self.tree_dump()
 
 
     def get_last_change_dic(self):
@@ -149,7 +151,11 @@ class Robot(object):
             for file in change_content:
                 if last_change_dic.get(file, 0) == 0:
                     last_change_dic[file] = curren_hash
-        return last_change_dic
+        sorted_dic_list = sorted(last_change_dic.items(), key=lambda x:x[0])
+        sorted_dic = {}
+        for item in sorted_dic_list:
+            sorted_dic[item[0]] = item[1]
+        return sorted_dic
 
 
     def last_change_dic_to_change_list(self, dic: dict):
@@ -158,8 +164,8 @@ class Robot(object):
         for file in dic:
             last_change_hash = dic[file]
             record = {}
-            record["type"] = "file"
             record["path"] = f"{file}"
+            record["type"] = "file"
             record["change"] = {
                 "time": os.popen(f'git log --pretty=format:"%cd" {last_change_hash} -1').read(),
                 "author": os.popen(f'git log --pretty=format:"%an" {last_change_hash} -1').read(),
@@ -168,9 +174,67 @@ class Robot(object):
             # if record["change"]["author"] == yourself:
             #     continue
             change_list.append(record)
+        change_list.sort(key=lambda x:x["path"])
         return change_list
 
 
+    def record_leaf_to_root(self, record, node: Node):
+        node.data.type = "file"
+        node.data.time = record["change"]["time"]
+        node.data.author = record["change"]["author"]
+        node.data.message = record["change"]["message"]
+        node.data.is_changed = True
+        tree = self._tree
+        root = tree.get_node(tree.root)
+        dire = tree.parent(node.identifier)
+        while dire != root:
+            dire.data.type = "dir"
+            dire.data.time = record["change"]["time"]
+            dire.data.author = record["change"]["author"]
+            dire.data.message = record["change"]["message"]
+            dire.data.is_changed = True
+            dire = self._tree.parent(dire.identifier)
+            
+    
+    def get_records_from_leaf(self, node: Node):
+        records = []
+        tree = self._tree
+        root = tree.get_node(tree.root)
+        while node != root:
+            if node.data.is_focused == True:
+                record = {}
+                record["path"] = node.data.path
+                record["type"] = node.data.type
+                record["status"] = node.data.fstatus
+                record["change"] = {
+                    "time": node.data.time,
+                    "author": node.data.author,
+                    "message": node.data.message,
+                }
+                records.append(record)
+            node = self._tree.parent(node.identifier)
+        return records
+
+
+    def adjust_change_list_to_tree(self, change_list: list):
+        children = self._tree.leaves()
+        lengthl = len(change_list)
+        indexl = 0
+        indext = 0
+        while indexl < lengthl:
+            record = change_list[indexl]
+            node = children[indext]
+            pathl = record["path"]
+            patht = node.data.path
+            if patht == pathl:
+                indexl += 1
+                indext += 1
+                self.record_leaf_to_root(record, node)
+            elif pathl > patht:
+                indext += 1
+            elif pathl < patht:
+                print("error: adjust_change_list_to_tree")
+        
     def get_focus_change_file_list(self, change_list, focus_file_list):
         focus_change_file_list = []
         for change in change_list:
@@ -232,6 +296,53 @@ class Robot(object):
             json.dump(history_json, f, indent=4)
 
 
+    def get_show_list(self):
+        show_list = []
+        change_list = self._change_list
+        children = self._tree.leaves()
+        lengthl = len(change_list)
+        indexl = 0
+        indext = 0
+        while indexl < lengthl:
+            record = change_list[indexl]
+            node = children[indext]
+            pathl = record["path"]
+            patht = node.data.path
+            if patht == pathl:
+                indexl += 1
+                indext += 1
+                records = self.get_records_from_leaf(node)
+                show_list += records
+            elif pathl > patht:
+                indext += 1
+            elif pathl < patht:
+                print("error: adjust_change_list_to_tree")
+        return show_list
+
+
+    def get_focus_list(self):
+        focus_file_list = []
+        focus_directory_list = []
+        tree = self._tree
+        root: Node = tree.get_node(tree.root)
+        pqueue = Queue()
+        pqueue.put(root)
+        while not pqueue.empty():
+            pqueue_temp = Queue()
+            while not pqueue.empty():
+                pnode: Node = pqueue.get()
+                children = tree.children(pnode.identifier)
+                for node in children:
+                    if node.data.is_focused == True:
+                        if node.data.type == "dir":
+                            focus_directory_list.append(node.data.path)
+                        if node.data.type == "file":
+                            focus_file_list.append(node.data.path)
+                    pqueue_temp.put(node)
+            pqueue = pqueue_temp
+        return focus_file_list, focus_directory_list
+
+
     @property
     def query_interval(self):
         return self._query_interval
@@ -241,11 +352,19 @@ class Robot(object):
         self._query_interval = query_interval
     
     def change_parse(self):
+        self._tree.show()
+        self._tree.show(data_property="is_focused")
+        self._tree.show(data_property="path")
+        self._tree.show(data_property="fstatus")
         last_change_dic = self.get_last_change_dic()
         change_list = self.last_change_dic_to_change_list(last_change_dic)
+        self._change_list = change_list
+        self.adjust_change_list_to_tree(change_list)
+        self.tree_dump()
         focus_change_list = self.get_focus_change_list(change_list)
         self.renew_history(change_list)
         self.renew_change(focus_change_list)
+        
 
     
     def ftree_init(self):
@@ -260,8 +379,10 @@ class Robot(object):
         current_tree, number = get_rep_construct(number)
         sh(f"git checkout {branch_name}")
         ftree, number = merge_tree(last_tree, current_tree, number)
+        adjust_tree_path(ftree)
         self.dump_number(number)
         self._tree = ftree
+        self.tree_dump()
     
     
     def tree_dump(self):

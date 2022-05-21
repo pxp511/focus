@@ -44,98 +44,138 @@ def main(robot: Robot):
     
     
     def add_focus_file():
-        print(robot._tree.leaves())
         file_path = file_message_entry.get()
-        if file_path == "":
-            hint("file path input is empty")
-            return
-        with open(focus_file, 'r') as f:
-            focus_json = json.load(f)
-        for file in focus_json["focus_file_list"]:
-            if file_path == file:
-                hint("file already been focused")
-                return
-        if os.path.isfile(os.path.abspath(file_path)):
-            hint("successfully add a focus file")
-        else:
-            warnning("the file doesn't exist, but added anyway.\n i can't do correction for you, \n so make sure your path is right")
-        focus_json["focus_file_list"].append(file_path)
-        with open(focus_file, 'w') as f:
-            json.dump(focus_json, f, indent=4)
+        is_find = False
+        for node in robot._tree.all_nodes():
+            if node.data.path == file_path:
+                node.data.is_focused = True
+                is_find  = True
+                hint("find")
+                robot.tree_dump()
+                break
+        if is_find == False:
+            hint("not find")
+        # if file_path == "":
+        #     hint("file path input is empty")
+        #     return
+        # with open(focus_file, 'r') as f:
+        #     focus_json = json.load(f)
+        # for file in focus_json["focus_file_list"]:
+        #     if file_path == file:
+        #         hint("file already been focused")
+        #         return
+        # if os.path.isfile(os.path.abspath(file_path)):
+        #     hint("successfully add a focus file")
+        # else:
+        #     warnning("the file doesn't exist, but added anyway.\n i can't do correction for you, \n so make sure your path is right")
+        # focus_json["focus_file_list"].append(file_path)
+        # with open(focus_file, 'w') as f:
+        #     json.dump(focus_json, f, indent=4)
         
-        renew()
+        # renew()
 
 
     def add_focus_directory():
         directory_path = dir_message_entry.get()
-        if directory_path == "":
-            hint("directory path input is empty")
-            return
-        with open(focus_file, 'r') as f:
-            focus_json = json.load(f)
-        for directory in focus_json["focus_directory_list"]:
-            if directory_path == directory:
-                hint("directory already been focused")
-                return
-        if os.path.isdir(os.path.abspath(directory_path)):
-            hint("successfully add a focus directory")
-        else:
-            warnning("the directory doesn't exist, but added anyway.\n i can't do correction for you, \n so make sure your path is right")
-        focus_json["focus_directory_list"].append(directory_path)
-        with open(focus_file, 'w') as f:
-            json.dump(focus_json, f, indent=4)
-        renew()
+        is_find = False
+        for node in robot._tree.all_nodes():
+            if node.data.path == directory_path:
+                node.data.is_focused = True
+                is_find  = True
+                hint("find")
+                robot.tree_dump()
+                break
+        if is_find == False:
+            hint("not find")
+        # if directory_path == "":
+        #     hint("directory path input is empty")
+        #     return
+        # with open(focus_file, 'r') as f:
+        #     focus_json = json.load(f)
+        # for directory in focus_json["focus_directory_list"]:
+        #     if directory_path == directory:
+        #         hint("directory already been focused")
+        #         return
+        # if os.path.isdir(os.path.abspath(directory_path)):
+        #     hint("successfully add a focus directory")
+        # else:
+        #     warnning("the directory doesn't exist, but added anyway.\n i can't do correction for you, \n so make sure your path is right")
+        # focus_json["focus_directory_list"].append(directory_path)
+        # with open(focus_file, 'w') as f:
+        #     json.dump(focus_json, f, indent=4)
+        # renew()
 
 
     def delete_focus_file():
         file_path = file_message_entry.get()
-        if file_path == "":
-            hint("file path input is empty")
-            return
-        with open(focus_file, 'r') as f:
-            focus_json = json.load(f)
-        delete_ok = False
-        for file in focus_json["focus_file_list"]:
-            if file_path == file:
-                focus_json["focus_file_list"].remove(file_path)
-                with open(focus_file, 'w') as f:
-                    json.dump(focus_json, f, indent=4)
-                hint("successfully delete a focus file")
-                delete_ok = True
+        is_find = False
+        for node in robot._tree.all_nodes():
+            if node.data.path == file_path:
+                node.data.is_focused = False
+                is_find  = True
+                hint("find")
+                robot.tree_dump()
                 break
-        if delete_ok != True:
-            hint("no such focus file")
-        renew()
+        if is_find == False:
+            hint("not find")
+        # if file_path == "":
+        #     hint("file path input is empty")
+        #     return
+        # with open(focus_file, 'r') as f:
+        #     focus_json = json.load(f)
+        # delete_ok = False
+        # for file in focus_json["focus_file_list"]:
+        #     if file_path == file:
+        #         focus_json["focus_file_list"].remove(file_path)
+        #         with open(focus_file, 'w') as f:
+        #             json.dump(focus_json, f, indent=4)
+        #         hint("successfully delete a focus file")
+        #         delete_ok = True
+        #         break
+        # if delete_ok != True:
+        #     hint("no such focus file")
+        # renew()
 
 
     def delete_focus_directory():
         directory_path = dir_message_entry.get()
-        if directory_path == "":
-            hint("directory path input is empty")
-            return
-        with open(focus_file, 'r') as f:
-            focus_json = json.load(f)
-        delete_ok = False
-        for directory in focus_json["focus_directory_list"]:
-            if directory_path == directory:
-                focus_json["focus_directory_list"].remove(directory_path)
-                with open(focus_file, 'w') as f:
-                    json.dump(focus_json, f, indent=4)
-                hint("successfully delete a focus directory")
-                delete_ok = True
+        is_find = False
+        for node in robot._tree.all_nodes():
+            if node.data.path == directory_path:
+                node.data.is_focused = False
+                is_find  = True
+                hint("find")
+                robot.tree_dump()
                 break
-        if delete_ok != True:
-            hint("no such focus directory")
-        renew()
+        if is_find == False:
+            hint("not find")
+        # if directory_path == "":
+        #     hint("directory path input is empty")
+        #     return
+        # with open(focus_file, 'r') as f:
+        #     focus_json = json.load(f)
+        # delete_ok = False
+        # for directory in focus_json["focus_directory_list"]:
+        #     if directory_path == directory:
+        #         focus_json["focus_directory_list"].remove(directory_path)
+        #         with open(focus_file, 'w') as f:
+        #             json.dump(focus_json, f, indent=4)
+        #         hint("successfully delete a focus directory")
+        #         delete_ok = True
+        #         break
+        # if delete_ok != True:
+        #     hint("no such focus directory")
+        # renew()
 
 
     def renew():
         if robot.is_remote_changed():
             robot.change_parse()
-        if os.path.isfile(change_file):
-            with open(change_file, 'r') as f:
-                history_json = json.load(f)
-        change_list: list = history_json['change_list']
+        # if os.path.isfile(change_file):
+        #     with open(change_file, 'r') as f:
+        #         history_json = json.load(f)
+        # change_list: list = history_json['change_list']
+        change_list = robot.get_show_list()
         if len(change_list) > history_count:
             count_of_history_for_show = history_count
             ellipsis = '......'
@@ -197,10 +237,11 @@ def main(robot: Robot):
     def show_all_history():
         def myfunction(event):
             canvas.configure(scrollregion=canvas.bbox("all"))
-        if os.path.isfile(change_file):
-            with open(change_file, 'r') as f:
-                history_json = json.load(f)
-        change_list: list = history_json['change_list']
+        # if os.path.isfile(change_file):
+        #     with open(change_file, 'r') as f:
+        #         history_json = json.load(f)
+        # change_list: list = history_json['change_list']
+        change_list = robot.get_show_list()
         if change_list == []:
             hint("the change history is empty")
             return
@@ -269,11 +310,12 @@ def main(robot: Robot):
     def show_all_focus():
         def myfunction(event):
             canvas.configure(scrollregion=canvas.bbox("all"))
-        if os.path.isfile(focus_file):
-            with open(focus_file, 'r') as f:
-                focus_json = json.load(f)
-        focus_file_list: list = focus_json['focus_file_list']
-        focus_directory_list: list = focus_json['focus_directory_list']
+        # if os.path.isfile(focus_file):
+        #     with open(focus_file, 'r') as f:
+        #         focus_json = json.load(f)
+        # focus_file_list: list = focus_json['focus_file_list']
+        # focus_directory_list: list = focus_json['focus_directory_list']
+        focus_file_list, focus_directory_list = robot.get_focus_list()
         if focus_file_list == [] and focus_directory_list == []:
             hint("your focus is empty")
             return
