@@ -166,8 +166,10 @@ class Robot(object):
             record = {}
             record["path"] = f"{file}"
             record["type"] = "file"
+            time = os.popen(f'git log --pretty=format:"%ci" {last_change_hash} -1').read()
+            time = time[: time.rfind(" ")]
             record["change"] = {
-                "time": os.popen(f'git log --pretty=format:"%cd" {last_change_hash} -1').read(),
+                "time": time,
                 "author": os.popen(f'git log --pretty=format:"%an" {last_change_hash} -1').read(),
                 "message": os.popen(f'git log --pretty=format:"%s" {last_change_hash} -1').read(),
             }
@@ -189,9 +191,12 @@ class Robot(object):
         dire = tree.parent(node.identifier)
         while dire != root:
             dire.data.type = "dir"
-            dire.data.time = record["change"]["time"]
+            if dire.data.time == "" or record["change"]["time"] > dire.data.time:
+                dire.data.time = record["change"]["time"]
             dire.data.author = record["change"]["author"]
             dire.data.message = record["change"]["message"]
+            if node.data.path not in dire.data.file:
+                dire.data.file.append(node.data.path)
             dire.data.is_changed = True
             dire = self._tree.parent(dire.identifier)
             
@@ -206,6 +211,7 @@ class Robot(object):
                 record["path"] = node.data.path
                 record["type"] = node.data.type
                 record["status"] = node.data.fstatus
+                record["file"] = node.data.file
                 record["change"] = {
                     "time": node.data.time,
                     "author": node.data.author,
@@ -312,7 +318,9 @@ class Robot(object):
                 indexl += 1
                 indext += 1
                 records = self.get_records_from_leaf(node)
-                show_list += records
+                for one in records:
+                    if one not in show_list:
+                        show_list.append(one)
             elif pathl > patht:
                 indext += 1
             elif pathl < patht:
@@ -352,10 +360,10 @@ class Robot(object):
         self._query_interval = query_interval
     
     def change_parse(self):
-        self._tree.show()
-        self._tree.show(data_property="is_focused")
-        self._tree.show(data_property="path")
-        self._tree.show(data_property="fstatus")
+        # self._tree.show()
+        # self._tree.show(data_property="is_focused")
+        # self._tree.show(data_property="path")
+        # self._tree.show(data_property="file")
         last_change_dic = self.get_last_change_dic()
         change_list = self.last_change_dic_to_change_list(last_change_dic)
         self._change_list = change_list

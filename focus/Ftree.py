@@ -27,7 +27,6 @@ class Fnode(object):
         fstatus = '',
         author = '',
         message = '',
-        file = '',
         is_changed = False,
         is_focused = False
         ):
@@ -40,7 +39,7 @@ class Fnode(object):
         self.fstatus = fstatus
         self.author = author
         self.message = message
-        self.file = file
+        self.file = []
         self.is_changed = is_changed
         self.is_focused = is_focused
         # 0: 未合并

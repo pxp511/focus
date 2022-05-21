@@ -25,6 +25,7 @@ def warnning(s: str):
 
 
 def get_pos(chars: str, wraplength: int):
+    return "center"
     char_number = wraplength / 7
     if len(chars) > char_number:
         pos = 'w'
@@ -39,7 +40,7 @@ def main(robot: Robot):
     focus_file = f"{focus_dir}/focus.json"
     change_file = f"{focus_dir}/change.json"
     history_count = 5
-    length = '1300'
+    length = '1350'
     height = '670'
     
     
@@ -192,23 +193,28 @@ def main(robot: Robot):
         time_label_topline = Label(history_display_panel, text="time", font=('Arial', 16), bg='white')
         time_label_topline.grid(row=row_number, column=3)
         author_label_topline = Label(history_display_panel, text="author", font=('Arial', 16), bg='white')
-        author_label_topline.grid(row=row_number, column=4)
+        author_label_topline.grid(row=row_number, column=4, padx=20)
+        status_label_topline = Label(history_display_panel, text="status", font=('Arial', 16), bg='white')
+        status_label_topline.grid(row=row_number, column=5, padx=20)
         message_label_topline = Label(history_display_panel, text="message", font=('Arial', 16), bg='white')
-        message_label_topline.grid(row=row_number, column=5)
+        message_label_topline.grid(row=row_number, column=6)
         file_label_topline = Label(history_display_panel, text="file", font=('Arial', 16), bg='white')
-        file_label_topline.grid(row=row_number, column=6)
-        for index in range(len(change_list) - 1, len(change_list) - count_of_history_for_show - 1, -1):
+        file_label_topline.grid(row=row_number, column=7)
+        for index in range(count_of_history_for_show):
             row_number += 1
             record: dict = change_list[index]
             type_of_record = record["type"]
             if type_of_record == 'directory':
                 type_of_record = 'dir'
             path = record["path"]
+            status = record["status"]
             time = record["change"]["time"]
-            time = time[time.find(" "): time.rfind(" ")]
+            files = record["file"]
+            file_content = ""
+            for file in files:
+                file_content += file + '\n'
             author = record["change"]["author"]
             message = record["change"]["message"]
-            file = record.get("file", "")
             type_label = Label(history_display_panel, text=type_of_record, bg='white')
             type_label.grid(row=row_number, column=0)
             wraplength = 300
@@ -219,14 +225,16 @@ def main(robot: Robot):
             time_label.grid(row=row_number, column=3)
             author_label = Label(history_display_panel, text=author, bg='white')
             author_label.grid(row=row_number, column=4)
+            status_label = Label(history_display_panel, text=status, bg='white')
+            status_label.grid(row=row_number, column=5)
             wraplength = 300
             pos = get_pos(message, wraplength)
             message_label = Label(history_display_panel, text=message, width=30, height=3, wraplength=wraplength, anchor=pos, bg='white')
-            message_label.grid(row=row_number, column=5)
+            message_label.grid(row=row_number, column=6)
             wraplength = 300
-            pos = get_pos(file, wraplength)
-            file_label = Label(history_display_panel, text=file, width=30, height=3, wraplength=wraplength, anchor=pos, bg='white')
-            file_label.grid(row=row_number, column=6)
+            pos = get_pos(file_content, wraplength)
+            file_label = Label(history_display_panel, text=file_content, width=30, height=3, wraplength=wraplength, anchor=pos, bg='white')
+            file_label.grid(row=row_number, column=7)
         row_number += 1
         if ellipsis != '':
             ellipsis_label = Label(history_display_panel, text=ellipsis, font=('Arial', 25), bg='white')
@@ -245,7 +253,7 @@ def main(robot: Robot):
         if change_list == []:
             hint("the change history is empty")
             return
-        width = 1300
+        width = 1350
         height = 670
         content_window = Tk()
         content_window.geometry(f'{width}x{height}')
@@ -270,11 +278,13 @@ def main(robot: Robot):
         time_label_topline.grid(row=row_number, column=3)
         author_label_topline = Label(content_frame, text="author", font=('Arial', 16), bg='white')
         author_label_topline.grid(row=row_number, column=4)
+        status_label_topline = Label(content_frame, text="status", font=('Arial', 16), bg='white')
+        status_label_topline.grid(row=row_number, column=5)
         message_label_topline = Label(content_frame, text="message", font=('Arial', 16), bg='white')
-        message_label_topline.grid(row=row_number, column=5)
+        message_label_topline.grid(row=row_number, column=6)
         file_label_topline = Label(content_frame, text="file", font=('Arial', 16), bg='white')
-        file_label_topline.grid(row=row_number, column=6)
-        for index in range(len(change_list) - 1, -1, -1):
+        file_label_topline.grid(row=row_number, column=7)
+        for index in range(len(change_list)):
             row_number += 1
             record: dict = change_list[index]
             type_of_record = record["type"]
@@ -282,10 +292,13 @@ def main(robot: Robot):
                 type_of_record = 'dir'
             path = record["path"]
             time = record["change"]["time"]
-            time = time[time.find(" "): time.rfind(" ")]
+            status = record["status"]
             author = record["change"]["author"]
             message = record["change"]["message"]
-            file = record.get("file", "")
+            files = record["file"]
+            file_content = ""
+            for file in files:
+                file_content += file + '\n'
             type_label = Label(content_frame, text=type_of_record, bg='white')
             type_label.grid(row=row_number, column=0)
             wraplength = 300
@@ -296,14 +309,16 @@ def main(robot: Robot):
             time_label.grid(row=row_number, column=3)
             author_label = Label(content_frame, text=author, bg='white')
             author_label.grid(row=row_number, column=4)
+            status_label = Label(content_frame, text=status, bg='white')
+            status_label.grid(row=row_number, column=5, padx=10)
             wraplength = 300
             pos = get_pos(message, wraplength)
             message_label = Label(content_frame, text=message, width=30, height=3, wraplength=wraplength, anchor=pos, bg='white')
-            message_label.grid(row=row_number, column=5)
+            message_label.grid(row=row_number, column=6)
             wraplength = 300
             pos = get_pos(file, wraplength)
-            file_label = Label(content_frame, text=file, width=30, height=3, wraplength=wraplength, anchor=pos, bg='white')
-            file_label.grid(row=row_number, column=6)
+            file_label = Label(content_frame, text=file_content, width=30, height=3, wraplength=wraplength, anchor=pos, bg='white')
+            file_label.grid(row=row_number, column=7)
         content_window.mainloop()
 
 
