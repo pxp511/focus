@@ -1,7 +1,7 @@
-from treelib import Tree, Node
-from queue import Queue
 import os
 import subprocess
+from queue import Queue
+from treelib import Tree, Node
 
 
 def sh(command):

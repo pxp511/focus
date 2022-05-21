@@ -1,5 +1,4 @@
 import os
-import json
 import pickle
 from time import sleep
 from focus.Ftree import *
@@ -50,9 +49,6 @@ class Robot(object):
         self._query_interval = queryinterval
         self._repository = repository
         focus_dir = f"{repository}/.git/.focus"
-        self._focus_file = f"{focus_dir}/focus.json"
-        self._change_file = f"{focus_dir}/change.json"
-        self._history_file = f"{focus_dir}/history.json"
         self._tree_obj = f"{focus_dir}/treeobj"
         self._hash_file = f"{focus_dir}/hash"
         self._merge_base_file = f"{focus_dir}/merge_base"
@@ -64,12 +60,6 @@ class Robot(object):
         self._change_list_obj = f"{focus_dir}/change_list_obj"
         fetch_from_origin(self._debug)
         if not os.path.isdir(focus_dir):
-            # os.mkdir(focus_dir)
-            # focus_json = {}
-            # focus_json["focus_file_list"] = []
-            # focus_json["focus_directory_list"] = []
-            # with open(self._focus_file, 'w') as f:
-            #     json.dump(focus_json, f, indent=4)
             os.mkdir(focus_dir)
             self.dump_number(0)
             self.init()
@@ -82,27 +72,9 @@ class Robot(object):
                 self._hash = f.readline()
             with open(self._merge_base_file, 'r') as f:
                 self._merge_base = f.readline()
-        # history_json = {}
-        # history_json["change_list"] = []
-        # with open(self._history_file, 'w') as f:
-        #     json.dump(history_json, f, indent=4)
-        # change_json = {}
-        # change_json["change_list"] = []
-        # with open(self._change_file, 'w') as f:
-        #     json.dump(change_json, f, indent=4)
 
 
     def is_remote_changed(self):
-        # if self.tree_need_change():
-        #     self.tree_update()
-        history_json = {}
-        history_json["change_list"] = []
-        with open(self._history_file, 'w') as f:
-            json.dump(history_json, f, indent=4)
-        change_json = {}
-        change_json["change_list"] = []
-        with open(self._change_file, 'w') as f:
-            json.dump(change_json, f, indent=4)
         remote_hashnumber, _ = get_remote_head_hashnumber()
         local_hashnumber = get_local_head_hashnumber()
         change_content = os.popen(f"git rev-list --left-right {local_hashnumber}...{remote_hashnumber}").read().splitlines()
@@ -144,7 +116,6 @@ class Robot(object):
 
     def get_last_change_dic(self):
         remote_hashnumber, merge_base = get_remote_head_hashnumber()
-        local_hashnumber = get_local_head_hashnumber()
         hash_list = os.popen(f"git rev-list  {merge_base}...{remote_hashnumber}").read().splitlines()
         hash_list.append(merge_base)
         last_change_dic = {}
@@ -244,66 +215,6 @@ class Robot(object):
                 indext += 1
             elif pathl < patht:
                 print("error: adjust_change_list_to_tree")
-        
-    # def get_focus_change_file_list(self, change_list, focus_file_list):
-    #     focus_change_file_list = []
-    #     for change in change_list:
-    #         for focus_file in focus_file_list:
-    #             if change["path"] == focus_file:
-    #                 focus_change_file_list.append(change)
-    #                 break
-    #     return focus_change_file_list
-
-
-    # def get_focus_change_directory_list(self, change_list, focus_directory_list):
-    #     focus_change_directory_list = []
-    #     for change in change_list:
-    #         change_dir = os.path.dirname(change["path"])
-    #         while change_dir != "":
-    #             for focus_directory in focus_directory_list:
-    #                 if change_dir == focus_directory:
-    #                     directory_change_item = {}
-    #                     directory_change_item["type"] = "directory"
-    #                     directory_change_item["path"] = focus_directory
-    #                     directory_change_item["file"] = change["path"]
-    #                     directory_change_item["change"] = {
-    #                         "time": change["change"]["time"],
-    #                         "author": change["change"]["author"],
-    #                         "message": change["change"]["message"],
-    #                     }
-    #                     focus_change_directory_list.append(directory_change_item)
-    #                     break
-    #             change_dir = os.path.dirname(change_dir)
-    #     return focus_change_directory_list
-
-
-    # def get_focus_change_list(self, change_list: list) -> list:
-    #     # change files to focus files and directories
-    #     fucos_file = self._focus_file
-    #     focus = {}
-    #     if os.path.isfile(fucos_file):
-    #         with open(fucos_file, 'r') as f:
-    #             focus = json.load(f)
-    #     focus_file_list = focus["focus_file_list"]
-    #     focus_directory_list = focus["focus_directory_list"]
-    #     focus_change_list = []
-    #     focus_change_list += self.get_focus_change_file_list(change_list, focus_file_list)
-    #     focus_change_list += self.get_focus_change_directory_list(change_list, focus_directory_list)
-    #     return focus_change_list
-
-
-    # def renew_change(self, focus_change_list: list):
-    #     change_json = {}
-    #     change_json["change_list"] = focus_change_list
-    #     with open(self._change_file, 'w') as f:
-    #         json.dump(change_json, f, indent=4)
-
-
-    # def renew_history(self, change_list: list):
-    #     history_json = {}
-    #     history_json["change_list"] = change_list
-    #     with open(self._history_file, 'w') as f:
-    #         json.dump(history_json, f, indent=4)
 
 
     def get_show_list(self):
@@ -362,30 +273,8 @@ class Robot(object):
     @query_interval.setter
     def query_interval(self, query_interval):
         self._query_interval = query_interval
-    
-    def change_parse(self):
-        # self._tree.show()
-        # self._tree.show(data_property="is_focused")
-        # self._tree.show(data_property="path")
-        # self._tree.show(data_property="file")
-        last_change_dic = self.get_last_change_dic()
-        change_list = self.last_change_dic_to_change_list(last_change_dic)
-        self._change_list = change_list
-        self.adjust_change_list_to_tree(change_list)
-        self.tree_dump()
-        hash_number, merge_base = get_remote_head_hashnumber()
-        with open(self._hash_file, 'w') as f:
-            f.write(hash_number)
-        self._hash = hash_number
-        with open(self._merge_base_file, 'w') as f:
-            f.write(merge_base)
-        self._merge_base = merge_base
-        # focus_change_list = self.get_focus_change_list(change_list)
-        # self.renew_history(change_list)
-        # self.renew_change(focus_change_list)
-        
 
-    
+
     def init(self):
         hash_number, merge_base = get_remote_head_hashnumber()
         with open(self._hash_file, 'w') as f:
@@ -436,11 +325,11 @@ class Robot(object):
 
 
     def run(self):
-        self._tree.show()
-        self._tree.show(data_property="is_focused")
-        self._tree.show(data_property="path")
-        self._tree.show(data_property="file")
-        self._tree.show(data_property="author")
+        # self._tree.show()
+        # self._tree.show(data_property="is_focused")
+        # self._tree.show(data_property="path")
+        # self._tree.show(data_property="file")
+        # self._tree.show(data_property="author")
         while True:
             sleep(self.query_interval)
             fetch_from_origin(self._debug)
