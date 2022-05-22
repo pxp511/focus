@@ -77,20 +77,6 @@ def main(robot: Robot):
             hint("not find")
 
 
-    def add_focus_directory():
-        directory_path = dir_message_entry.get()
-        is_find = False
-        for node in robot._tree.all_nodes():
-            if node.data.path == directory_path:
-                node.data.is_focused = True
-                is_find  = True
-                hint("find")
-                robot.tree_dump()
-                break
-        if is_find == False:
-            hint("not find")
-
-
     def delete_focus_file():
         file_path = file_message_entry.get()
         node, is_find = find_node(file_path)
@@ -102,22 +88,8 @@ def main(robot: Robot):
             hint("not find")
 
 
-    def delete_focus_directory():
-        directory_path = dir_message_entry.get()
-        is_find = False
-        for node in robot._tree.all_nodes():
-            if node.data.path == directory_path:
-                node.data.is_focused = False
-                is_find  = True
-                hint("find")
-                robot.tree_dump()
-                break
-        if is_find == False:
-            hint("not find")
-
-
     def renew():
-        if robot.is_remote_changed() and robot.tree_need_change():
+        if robot.tree_need_change():
             robot.init()
         change_list = robot.get_show_list()
         if len(change_list) > history_count:
@@ -258,7 +230,7 @@ def main(robot: Robot):
     def show_all_focus():
         def myfunction(event):
             canvas.configure(scrollregion=canvas.bbox("all"))
-        focus_file_list, focus_directory_list = robot.get_focus_list()
+        focus_file_list, focus_directory_list = robot.get_focus_list(robot._tree)
         if focus_file_list == [] and focus_directory_list == []:
             hint("your focus is empty")
             return

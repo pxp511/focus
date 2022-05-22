@@ -70,21 +70,24 @@ def get_rep_construct(number: int):
     tree = Tree()
     path = os.getcwd()
     number += 1
-    root = tree.create_node(path, number, data=Fnode(0))
+    root = tree.create_node(path, number, data=Fnode(0, path=path))
     pqueue = Queue()
     pqueue.put(root)
     while not pqueue.empty():
         pqueue_temp = Queue()
         while not pqueue.empty():
             pnode = pqueue.get()
-            path = pnode.tag
+            path = pnode.data.path
             if os.path.isdir(path):
+                pnode.data.type = "dir"
                 for item in sorted(os.listdir(path)):
                     if item[0] == ".":
                         continue
                     number += 1
-                    node = tree.create_node(item, number, parent=pnode.identifier, data=Fnode(0))
+                    node = tree.create_node(item, number, parent=pnode.identifier, data=Fnode(0, path=os.path.join(path, item)))
                     pqueue_temp.put(node)
+            else:
+                pnode.data.type = "file"
         pqueue = pqueue_temp
     return tree, number
 
@@ -172,6 +175,11 @@ def adjust_tree_path(tree: Tree):
         pqueue_temp = Queue()
         while not pqueue.empty():
             pnode: Node = pqueue.get()
+            path = pnode.data.path
+            if os.path.isdir(path):
+                pnode.data.type = "dir"
+            else:
+                pnode.data.type = "file"
             dirpath = pnode.data.path
             pstatus = pnode.data.status
             cstatus = None

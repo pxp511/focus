@@ -29,7 +29,7 @@ def main():
         '-d',
         '--debug',
         type=str2bool,
-        default=False,
+        default=True,
         help=f"for debug, ignore this argument",
     )
     parser.add_argument(
@@ -50,7 +50,7 @@ def main():
         print(f"ERROE: is not a git repository")
         exit()
     os.chdir(f'{repository}')
-    print(f"Now monitoring directory: {repository}")
+    # print(f"Now monitoring directory: {repository}")
 
     robot = Robot(
         repository=repository,
