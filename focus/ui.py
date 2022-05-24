@@ -91,6 +91,11 @@ def main(robot: Robot):
     def renew():
         if robot.tree_need_change():
             robot.init()
+        print('*'*50 + '\n')
+        robot._tree.show()
+        robot._tree.show(data_property="is_focused")
+        robot._tree.show(data_property="path")
+        print('*'*50)
         change_list = robot.get_show_list()
         if len(change_list) > history_count:
             count_of_history_for_show = history_count
