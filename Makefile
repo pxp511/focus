@@ -10,7 +10,7 @@ package: clean
 uninstall:
 	echo y | python3 -m pip uninstall focus-xp
 
-package_install: package
+install: package uninstall
 	python3 -m pip install dist/*.whl -U
 
 upload: package
@@ -18,8 +18,3 @@ upload: package
 
 download:
 	python3 -m pip install focus-xp -U
-
-debug: clean uninstall package_install
-
-focus_run:
-	python3 -m focus --repository ~/mesh-label -d true

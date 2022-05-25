@@ -1,8 +1,9 @@
 import os
 import argparse
+import pickle
 import focus.ui as ui
 from time import sleep
-from focus.Robot import Robot
+from focus.gittree import defalut_tree_construct
 from multiprocessing import Process
 
 
@@ -19,20 +20,6 @@ def str2bool(s: str) -> bool:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '-r',
-        '--repository',
-        type=str,
-        required=True,
-        help=f'repository path',
-    )
-    parser.add_argument(
-        '-d',
-        '--debug',
-        type=str2bool,
-        default=True,
-        help=f"for debug, ignore this argument",
-    )
-    parser.add_argument(
         '-q',
         '--queryinterval',
         type=int,
@@ -40,33 +27,29 @@ def main():
         help=f"query interval setting",
     )
     args = parser.parse_args()
-    repository = os.path.abspath(args.repository)
     queryinterval = args.queryinterval
-    debug = args.debug
-    if not os.path.isdir(repository):
+    pwd = os.getcwd()
+    if not os.path.isdir(pwd):
         print(f"ERROE: is not a repository")
         exit()
-    if not os.path.isdir(os.path.join(repository, '.git')):
+    if not os.path.isdir(os.path.join(pwd, '.git')):
         print(f"ERROE: is not a git repository")
         exit()
-    os.chdir(f'{repository}')
     # print(f"Now monitoring directory: {repository}")
+    
+    focus_dir = f"{pwd}/.git/.focus"
+    tree_file = f"{focus_dir}/tree_obj"
+    if not os.path.isdir(focus_dir):
+        os.mkdir(focus_dir)
+        tree = defalut_tree_construct()
+        with open(tree_file, 'wb') as f:
+            pickle.dump(tree, f)
+    else:
+        with open(tree_file, 'rb') as f:
+            tree = pickle.load(f)
+    tree.show(data_property="")
+    ui.main(tree, tree_file)
 
-    robot = Robot(
-        repository=repository,
-        debug=debug,
-        queryinterval=queryinterval
-        )
-
-    p1 = Process(target=ui.main, args=(robot,))
-    p1.start()
-    p2 = Process(target=robot.run)
-    p2.start()
-    while True:
-        sleep(1)
-        if not p1.is_alive():
-            p2.terminate()
-            break
         
 
 if __name__ == '__main__':

@@ -1,6 +1,8 @@
 import os
+import pickle
 from tkinter import *
-from focus.Robot import Robot, fetch_from_origin
+from focus.Ftree import add_focus, delete_focus, get_changed_focus, get_focus
+from focus.gittree import fetch_from_origin
 
 
 def hint(s: str):
@@ -23,7 +25,8 @@ def warnning(s: str):
     warnning_content.pack()
 
 
-def main(robot: Robot):
+def main(tree, tree_file):
+    
     history_count = 5
     length = '1350'
     height = '670'
@@ -34,69 +37,32 @@ def main(robot: Robot):
     status_column = 3
     message_column = 6
     file_column = 7
-    
-    
-    def path_to_list(path):
-        l = []
-        dname = os.path.dirname(path)
-        bname = os.path.basename(path)
-        while dname != "":
-            l.append(os.path.basename(dname))
-            dname = os.path.dirname(dname)
-        l.reverse()
-        l.append(bname)
-        return l
-
-
-    def find_node(file_path):
-        is_find = True
-        path_list = path_to_list(file_path)
-        tree = robot._tree
-        node = tree.get_node(tree.root)
-        for path in path_list:
-            children = tree.children(node.identifier)
-            is_exist = False
-            for child in children:
-                if child.tag == path:
-                    node = child
-                    is_exist = True
-                    break
-            if not is_exist:
-                is_find = False
-        return node, is_find
 
 
     def add_focus_file():
         file_path = file_message_entry.get()
-        node, is_find = find_node(file_path)
+        is_find = add_focus(tree, file_path)
+        with open(tree_file, 'wb') as f:
+            pickle.dump(tree, f)
         if is_find:
-            node.data.is_focused = True
             hint("find")
-            robot.tree_dump()
         else:
             hint("not find")
 
 
     def delete_focus_file():
         file_path = file_message_entry.get()
-        node, is_find = find_node(file_path)
+        is_find = delete_focus(tree, file_path)
+        with open(tree_file, 'wb') as f:
+            pickle.dump(tree, f)
         if is_find:
-            node.data.is_focused = False
             hint("find")
-            robot.tree_dump()
         else:
             hint("not find")
 
 
     def renew():
-        if robot.tree_need_change():
-            robot.init()
-        print('*'*50 + '\n')
-        robot._tree.show()
-        robot._tree.show(data_property="is_focused")
-        robot._tree.show(data_property="path")
-        print('*'*50)
-        change_list = robot.get_show_list()
+        change_list = get_changed_focus(tree)
         if len(change_list) > history_count:
             count_of_history_for_show = history_count
             ellipsis = '......'
@@ -118,23 +84,15 @@ def main(robot: Robot):
         status_label_topline.grid(row=row_number, column=status_column, padx=20)
         message_label_topline = Label(history_display_panel, text="message", font=('Arial', 16), bg='white')
         message_label_topline.grid(row=row_number, column=message_column)
-        file_label_topline = Label(history_display_panel, text="file", font=('Arial', 16), bg='white')
-        file_label_topline.grid(row=row_number, column=file_column)
         for index in range(count_of_history_for_show):
             row_number += 1
             record: dict = change_list[index]
             type_of_record = record["type"]
-            if type_of_record == 'directory':
-                type_of_record = 'dir'
             path = record["path"]
             status = record["status"]
-            time = record["change"]["time"]
-            files = record["file"]
-            file_content = ""
-            for file in files:
-                file_content += file + '\n'
-            author = record["change"]["author"]
-            message = record["change"]["message"]
+            time = record["time"]
+            author = record["author"]
+            message = record["message"]
             type_label = Label(history_display_panel, text=type_of_record, bg='white')
             type_label.grid(row=row_number, column=type_column)
             wraplength = 300
@@ -149,9 +107,6 @@ def main(robot: Robot):
             wraplength = 300
             message_label = Label(history_display_panel, text=message, width=30, height=3, wraplength=wraplength, anchor="center", bg='white')
             message_label.grid(row=row_number, column=message_column)
-            wraplength = 300
-            file_label = Label(history_display_panel, text=file_content, width=30, height=3, wraplength=wraplength, anchor="center", bg='white')
-            file_label.grid(row=row_number, column=file_column)
         row_number += 1
         if ellipsis != '':
             ellipsis_label = Label(history_display_panel, text=ellipsis, font=('Arial', 25), bg='white')
@@ -162,7 +117,7 @@ def main(robot: Robot):
     def show_all_history():
         def myfunction(event):
             canvas.configure(scrollregion=canvas.bbox("all"))
-        change_list = robot.get_show_list()
+        change_list = get_changed_focus(tree)
         if change_list == []:
             hint("the change history is empty")
             return
@@ -180,8 +135,6 @@ def main(robot: Robot):
         content_frame = Frame(canvas, bg='white')
         content_frame.bind("<Configure>",myfunction)
         canvas.create_window((75, 40), window=content_frame,anchor="nw")
-        # frame_title = Label(content_frame, text="all focus", font=('Arial', 18), bg='white')
-        # frame_title.grid(row=0, column=4, pady=20)
         row_number = 0
         type_label_topline = Label(content_frame, text="type", font=('Arial', 16), bg='white')
         type_label_topline.grid(row=row_number, column=type_column, pady=15, padx=10)
@@ -195,23 +148,15 @@ def main(robot: Robot):
         status_label_topline.grid(row=row_number, column=status_column, padx=10)
         message_label_topline = Label(content_frame, text="message", font=('Arial', 16), bg='white')
         message_label_topline.grid(row=row_number, column=message_column)
-        file_label_topline = Label(content_frame, text="file", font=('Arial', 16), bg='white')
-        file_label_topline.grid(row=row_number, column=file_column)
         for index in range(len(change_list)):
             row_number += 1
             record: dict = change_list[index]
             type_of_record = record["type"]
-            if type_of_record == 'directory':
-                type_of_record = 'dir'
             path = record["path"]
-            time = record["change"]["time"]
+            time = record["time"]
             status = record["status"]
-            author = record["change"]["author"]
-            message = record["change"]["message"]
-            files = record["file"]
-            file_content = ""
-            for file in files:
-                file_content += file + '\n'
+            author = record["author"]
+            message = record["message"]
             type_label = Label(content_frame, text=type_of_record, bg='white')
             type_label.grid(row=row_number, column=type_column)
             wraplength = 300
@@ -226,17 +171,14 @@ def main(robot: Robot):
             wraplength = 300
             message_label = Label(content_frame, text=message, width=30, height=3, wraplength=wraplength, anchor="center", bg='white')
             message_label.grid(row=row_number, column=message_column)
-            wraplength = 300
-            file_label = Label(content_frame, text=file_content, width=30, height=3, wraplength=wraplength, anchor="center", bg='white')
-            file_label.grid(row=row_number, column=file_column)
         content_window.mainloop()
 
 
     def show_all_focus():
         def myfunction(event):
             canvas.configure(scrollregion=canvas.bbox("all"))
-        focus_file_list, focus_directory_list = robot.get_focus_list(robot._tree)
-        if focus_file_list == [] and focus_directory_list == []:
+        focus_list = get_focus(tree)
+        if focus_list == []:
             hint("your focus is empty")
             return
         length = 440
@@ -260,19 +202,10 @@ def main(robot: Robot):
         type_label_topline.grid(row=row_number, column=0, pady=15)
         path_label_topline = Label(content_frame, text="path", font=('Arial', 16), bg='white')
         path_label_topline.grid(row=row_number, column=1)
-        for item in focus_file_list:
+        for item in focus_list:
             row_number += 1
-            type_of_record = "file"
-            path = item
-            type_label = Label(content_frame, text=type_of_record, bg='white')
-            type_label.grid(row=row_number, column=0)
-            wraplength = 300
-            path_label = Label(content_frame, text=path, width=30, height=3, wraplength=wraplength, anchor="center", bg='white')
-            path_label.grid(row=row_number, column=1)
-        for item in focus_directory_list:
-            row_number += 1
-            type_of_record = "dir"
-            path = item
+            type_of_record = item[0]
+            path = item[1]
             type_label = Label(content_frame, text=type_of_record, bg='white')
             type_label.grid(row=row_number, column=0)
             wraplength = 300
@@ -283,7 +216,7 @@ def main(robot: Robot):
 
 
     def fetch():
-        fetch_from_origin(robot._debug)
+        fetch_from_origin()
         hint("Done fetching.")
 
     root = Tk()
