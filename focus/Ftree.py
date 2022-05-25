@@ -1,7 +1,10 @@
+import ast
 import os
 import subprocess
 from queue import Queue
 from treelib import Tree, Node
+
+from focus.astutils import ast_parse, get_children, get_name, get_type, get_value
 
 
 def sh(command):
@@ -28,7 +31,8 @@ class Fnode(object):
         author = '',
         message = '',
         is_changed = False,
-        is_focused = False
+        is_focused = False,
+        value = ""
         ):
         self.status = status
         self.id1 = id1
@@ -42,6 +46,7 @@ class Fnode(object):
         self.file = []
         self.is_changed = is_changed
         self.is_focused = is_focused
+        self.value = value
         # 0: 未合并
         # 2: 合后并均存在
         # -1: 被删除
@@ -66,11 +71,11 @@ class Fnode(object):
 # print([i for i in tree.rsearch(4)])  # 向根节点遍历
 # print(tree.size(2))  # 某一层级的节点数
 
-def get_rep_construct(number: int):
+def get_rep_construct(path = ""):
     tree = Tree()
-    path = os.getcwd()
-    number += 1
-    root = tree.create_node(path, number, data=Fnode(0, path=path))
+    if path == "":
+        path = os.getcwd()
+    root = tree.create_node(path, data=Fnode(0, path=path))
     pqueue = Queue()
     pqueue.put(root)
     while not pqueue.empty():
@@ -81,19 +86,21 @@ def get_rep_construct(number: int):
             if os.path.isdir(path):
                 pnode.data.type = "dir"
                 for item in sorted(os.listdir(path)):
-                    if item[0] == ".":
+                    if item[0] == "." or item == "__pycache__":
                         continue
-                    number += 1
-                    node = tree.create_node(item, number, parent=pnode.identifier, data=Fnode(0, path=os.path.join(path, item)))
+                    if os.path.isfile(os.path.join(path, item)) and item[-3:] != '.py':
+                        continue
+                    node = tree.create_node(item, parent=pnode.identifier, data=Fnode(0, path=os.path.join(path, item)))
                     pqueue_temp.put(node)
             else:
                 pnode.data.type = "file"
         pqueue = pqueue_temp
-    return tree, number
+    return tree
 
 
-def merge_tree_entity(tree1: Tree, tree2: Tree, dic: dict):
-    number = dic["number"]
+def merge_tree_entity(tree1: Tree, tree2: Tree):
+    if tree1 is None and tree2 is None:
+        return None
     if tree1 is None:
         tree2.get_node(tree2.root).data = Fnode(1)
         return tree2
@@ -104,9 +111,7 @@ def merge_tree_entity(tree1: Tree, tree2: Tree, dic: dict):
     root2: Node = tree2.get_node(tree2.root)
     assert root1.tag == root2.tag
     new_tree = Tree()
-    number += 1
-    dic["number"] = number
-    new_tree.create_node(root1.tag, number)
+    new_tree.create_node(root1.tag)
     if tree1.depth() == 0 and tree2.depth() == 0:
         new_tree.get_node(new_tree.root).data = Fnode(2)
         return new_tree
@@ -120,29 +125,23 @@ def merge_tree_entity(tree1: Tree, tree2: Tree, dic: dict):
     while index1 < length1 and index2 < length2:
         node1: Node = children1[index1]
         node2: Node = children2[index2]
-        number += 1
-        dic["number"] = number
         if node1.tag == node2.tag:
-            node_list.append(Node(node1.tag, number, data=Fnode(2, id1 = node1.identifier, id2 = node2.identifier)))
+            node_list.append(Node(node1.tag, data=Fnode(2, id1 = node1.identifier, id2 = node2.identifier)))
             index1 += 1
             index2 += 1
         elif node1.tag < node2.tag:
-            node_list.append(Node(node1.tag, number, data=Fnode(-1, id1 = node1.identifier)))
+            node_list.append(Node(node1.tag, data=Fnode(-1, id1 = node1.identifier)))
             index1 += 1
         elif node1.tag > node2.tag:
-            node_list.append(Node(node2.tag, number, data=Fnode(1, id2 = node2.identifier)))
+            node_list.append(Node(node2.tag, data=Fnode(1, id2 = node2.identifier)))
             index2 += 1
     while index1 < length1:
         node1: Node = children1[index1]
-        number += 1
-        dic["number"] = number
-        node_list.append(Node(node1.tag, number, data=Fnode(-1, id1 = node1.identifier)))
+        node_list.append(Node(node1.tag, data=Fnode(-1, id1 = node1.identifier)))
         index1 += 1
     while index2 < length2:
         node2: Node = children2[index2]
-        number += 1
-        dic["number"] = number
-        node_list.append(Node(node2.tag, number, data=Fnode(1, id2 = node2.identifier)))
+        node_list.append(Node(node2.tag, data=Fnode(1, id2 = node2.identifier)))
         index2 += 1
     for node in node_list:
         if node.data.status == -1:
@@ -154,17 +153,16 @@ def merge_tree_entity(tree1: Tree, tree2: Tree, dic: dict):
         elif node.data.status == 2:
             subtree1 = tree1.subtree(node.data.id1)
             subtree2 = tree2.subtree(node.data.id2)
-            subtree = merge_tree_entity(subtree1, subtree2, dic)
+            subtree = merge_tree_entity(subtree1, subtree2)
             subtree.get_node(subtree.root).data = Fnode(2)
         new_tree.paste(new_tree.root, subtree)
     return new_tree
 
 
-def merge_tree(tree1: Tree, tree2: Tree, number: int):
-    dic = {"number": number}
-    new_tree = merge_tree_entity(tree1, tree2, dic)
+def merge_tree(tree1: Tree, tree2: Tree):
+    new_tree = merge_tree_entity(tree1, tree2)
     new_tree.get_node(new_tree.root).data = Fnode(2)
-    return new_tree, dic["number"]
+    return new_tree
 
 
 def adjust_tree_path(tree: Tree):
@@ -207,3 +205,74 @@ def adjust_tree_path(tree: Tree):
                 pqueue_temp.put(node)
         pqueue = pqueue_temp
     return tree
+
+def is_tag_in_children(tree: Tree, node: Node, tag: str):
+    children = tree.children(node.identifier)
+    for child in children:
+        if tag == child.tag:
+            return True
+    return False
+
+def get_ast_construct(path):
+    ast_root = ast_parse(path)
+    tree = Tree()
+    root = tree.create_node(get_name(ast_root), data=Fnode(0, path=path))
+    ast_queue = Queue()
+    ast_queue.put(ast_root)
+    queue = Queue()
+    queue.put(root)
+    while not ast_queue.empty():        
+        ast_pnode = ast_queue.get()
+        pnode = queue.get()
+        ast_children = get_children(ast_pnode)
+        for ast_child in ast_children:
+            ast_queue.put(ast_child)
+            if is_tag_in_children(tree, pnode, get_name(ast_child)):
+                node = tree.create_node("", parent=pnode.identifier, data=Fnode(0, path=path))
+            else:
+                node = tree.create_node(get_name(ast_child), parent=pnode.identifier, data=Fnode(0, path=path, type=get_type(ast_child), value=get_value(ast_child)))
+            queue.put(node)
+    queue = Queue()
+    queue.put(tree.get_node(tree.root))
+    while not queue.empty():        
+        pnode = queue.get()
+        if pnode.tag == "":
+            tree.remove_node(pnode.identifier)
+            continue
+        children = tree.children(pnode.identifier)
+        for child in children:
+            queue.put(child)
+    return tree
+
+def rep_ast_tree_construct(path = ""):
+    if path == "":
+        path = os.getcwd()
+    tree = get_rep_construct(path)
+    leaves = tree.leaves()
+    for node in leaves:
+        file_path = node.data.path
+        ast_tree = get_ast_construct(file_path)
+        
+        for child in ast_tree.children(ast_tree.root):
+            subasttree = ast_tree.subtree(child.identifier)
+            tree.paste(node.identifier, subasttree) 
+    return tree
+    
+
+if __name__ == "__main__":
+    print()
+    # os.chdir("/Users/pengxiaopeng/test")
+    # get_rep_construct("/Users/pengxiaopeng/test").show(data_property="path")
+    # sh(f"git checkout origin/main")
+    # current_tree = get_rep_construct()
+    # sh(f"git checkout main")
+    # ftree = merge_tree(last_tree, current_tree)
+    # ftree.show(data_property="path")
+    # adjust_tree_path(ftree)
+    # ftree.show(data_property="path")
+    # path = os.path.join(os.path.abspath('.'), "Robot.py")
+    # path = "/Users/pengxiaopeng/Desktop/毕业设计/focus/focus/Ftree.py"
+    # ast_tree = get_ast_construct(path)
+    # ast_tree.show()
+    rep_ast_tree_construct("/Users/pengxiaopeng/Desktop/毕业设计/focus").show()
+    rep_ast_tree_construct("/Users/pengxiaopeng/Desktop/毕业设计/focus").show(data_property="path")

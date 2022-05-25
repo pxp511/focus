@@ -2,8 +2,6 @@ import ast
 import os
 import queue
 
-path = os.path.join(os.path.abspath("."), "zzzz.py")
-
 def get_type(node):
     return type(node).__name__
 
@@ -14,7 +12,10 @@ def assign_attr_parse(node):
         name = node.attr
         ret = '.' + name + ret
         node = node.value
-    ret = node.id + ret
+    if get_type(node) == "Call":
+        ret = node.func.value.id + '.' + node.func.attr + ret
+    else:    
+        ret = node.id + ret
     return ret
 
 def annassign_attr_parse(node):
@@ -31,7 +32,7 @@ def assign_tuple_parse(node):
     ret = []
     for son in node.targets[0].elts:
         ret.append(son.id)
-    return ret
+    return str(ret)
     
 def get_children(node):
     type_name = get_type(node)
@@ -79,19 +80,7 @@ def get_value(node):
         return ast.dump(node)
 
 
-with open(path, 'r') as f:
-    tree = ast.parse(f.read())
-
-
-queue = queue.Queue()
-queue.put(tree)
-while not queue.empty():
-    node = queue.get()
-    # if get_name(node) == "Module":
-    #     print(ast.dump(node))
-    #     exit()
-    print(get_name(node))
-    # print(ast.dump(node))
-    children = get_children(node)
-    for child in children:
-        queue.put(child)
+def ast_parse(path):
+    with open(path, 'r') as f:
+        root = ast.parse(f.read())
+    return root
