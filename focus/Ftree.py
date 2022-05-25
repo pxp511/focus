@@ -80,14 +80,14 @@ def get_rep_construct(path = ""):
             pnode = pqueue.get()
             path = pnode.data.path
             if os.path.isdir(path):
-                pnode.data.type = "dir"
+                pnode.data.type = "Dir"
                 for item in sorted(os.listdir(path)):
                     if item[0] == "." or item == "__pycache__":
                         continue
                     node = tree.create_node(item, parent=pnode.identifier, data=Fnode(0, path=os.path.join(path, item)))
                     pqueue_temp.put(node)
             else:
-                pnode.data.type = "file"
+                pnode.data.type = "File"
         pqueue = pqueue_temp
     return tree
 
@@ -158,17 +158,7 @@ def merge_tree(tree1: Tree, tree2: Tree):
     adjust_status(tree)
     return tree
 
-# status = node.data.status
-# if status == 0:
-#     node.data.fstatus = 'need merge'
-# elif status == 1:
-#     node.data.fstatus = 'new'
-# elif status == 2:
-#     node.data.fstatus = ''
-# elif status == -1:
-#     node.data.fstatus = 'deleted'
-# else:
-#     print("error: adjust tree")
+
 def adjust_status(tree: Tree):
     root: Node = tree.get_node(tree.root)
     queue = Queue()

@@ -26,9 +26,9 @@ def warnning(s: str):
 
 
 def main(tree, tree_file):
-    
+    root_path_length = len(tree.get_node(tree.root).data.path)
     history_count = 5
-    length = '1350'
+    length = '1100'
     height = '670'
     type_column = 1
     path_column = 0
@@ -88,7 +88,7 @@ def main(tree, tree_file):
             row_number += 1
             record: dict = change_list[index]
             type_of_record = record["type"]
-            path = record["path"]
+            path = record["path"][root_path_length + 1:]
             status = record["status"]
             time = record["time"]
             author = record["author"]
@@ -121,7 +121,7 @@ def main(tree, tree_file):
         if change_list == []:
             hint("the change history is empty")
             return
-        length = 1350
+        length = 1100
         height = 670
         content_window = Tk()
         content_window.geometry(f'{length}x{height}')
@@ -152,7 +152,7 @@ def main(tree, tree_file):
             row_number += 1
             record: dict = change_list[index]
             type_of_record = record["type"]
-            path = record["path"]
+            path = record["path"][root_path_length + 1:]
             time = record["time"]
             status = record["status"]
             author = record["author"]
@@ -205,7 +205,7 @@ def main(tree, tree_file):
         for item in focus_list:
             row_number += 1
             type_of_record = item[0]
-            path = item[1]
+            path = item[1][root_path_length + 1:]
             type_label = Label(content_frame, text=type_of_record, bg='white')
             type_label.grid(row=row_number, column=0)
             wraplength = 300
@@ -250,7 +250,7 @@ def main(tree, tree_file):
     history_button.pack(side="left")
     focus_button = Button(renew_history_fetch_button_panel, text='show all focus', width=10, height=2, command=show_all_focus, bg='white')
     focus_button.pack(side="left")
-    fetch_button = Button(renew_history_fetch_button_panel, text='fetch', width=10, height=2, command=fetch, bg='white')
-    fetch_button.pack(side="left")
+    # fetch_button = Button(renew_history_fetch_button_panel, text='fetch', width=10, height=2, command=fetch, bg='white')
+    # fetch_button.pack(side="left")
     renew_history_fetch_button_panel.pack()
     mainloop()
